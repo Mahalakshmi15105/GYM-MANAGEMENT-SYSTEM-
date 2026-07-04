@@ -1,7 +1,10 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 export default function LandingPage() {
+  const { isAuthenticated, logout } = useAuth();
+
   return (
     <div className="bg-slate-950 text-slate-100 min-h-screen flex flex-col w-full overflow-x-hidden">
       {/* Header - Stretches up to 1800px for high-res screens */}
@@ -16,15 +19,31 @@ export default function LandingPage() {
           </div>
           {/* Navigation links */}
           <nav className="flex items-center gap-4 sm:gap-6">
-            <Link to="/login" className="text-sm sm:text-base font-medium text-slate-300 hover:text-white transition-colors">
-              Log In
-            </Link>
-            <Link
-              to="/register"
-              className="text-xs sm:text-sm lg:text-base font-semibold bg-emerald-500 hover:bg-emerald-600 text-slate-950 px-3.5 py-2 sm:px-5 sm:py-2.5 rounded-xl transition-all duration-200 shadow-md shadow-emerald-500/10"
-            >
-              Register Gym
-            </Link>
+            {isAuthenticated ? (
+              <>
+                <Link to="/dashboard" className="text-sm sm:text-base font-medium text-slate-300 hover:text-white transition-colors">
+                  Dashboard
+                </Link>
+                <button
+                  onClick={logout}
+                  className="text-xs sm:text-sm lg:text-base font-semibold bg-red-500 hover:bg-red-600 text-white px-3.5 py-2 sm:px-5 sm:py-2.5 rounded-xl transition-all duration-200 shadow-md shadow-red-500/10"
+                >
+                  Logout
+                </button>
+              </>
+            ) : (
+              <>
+                <Link to="/login" className="text-sm sm:text-base font-medium text-slate-300 hover:text-white transition-colors">
+                  Log In
+                </Link>
+                <Link
+                  to="/register"
+                  className="text-xs sm:text-sm lg:text-base font-semibold bg-emerald-500 hover:bg-emerald-600 text-slate-950 px-3.5 py-2 sm:px-5 sm:py-2.5 rounded-xl transition-all duration-200 shadow-md shadow-emerald-500/10"
+                >
+                  Register Gym
+                </Link>
+              </>
+            )}
           </nav>
         </div>
       </header>

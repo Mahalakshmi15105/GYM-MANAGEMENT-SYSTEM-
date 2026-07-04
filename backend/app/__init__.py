@@ -21,6 +21,10 @@ def create_app(config_class=Config):
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
     app.register_blueprint(health_bp, url_prefix='/api')
     
+    # Register members blueprint
+    from app.routes.members import members_bp
+    app.register_blueprint(members_bp, url_prefix='/api/members')
+    
     # Create DB tables automatically on boot if DB is connected
     with app.app_context():
         try:

@@ -5,6 +5,8 @@ import api from '../services/api';
 
 export default function RegisterPage() {
   const [gymName, setGymName] = useState('');
+  const [gymAddress, setGymAddress] = useState('');
+  const [gymPhone, setGymPhone] = useState('');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -16,8 +18,15 @@ export default function RegisterPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!gymName || !name || !email || !password) {
+    if (!gymName || !gymAddress || !gymPhone || !name || !email || !password) {
       setError('Please fill in all fields.');
+      return;
+    }
+
+    // Phone number validation
+    const phoneRegex = /^[\+]?[\d\s\-\(\)]{10,}$/;
+    if (!phoneRegex.test(gymPhone)) {
+      setError('Please enter a valid phone number (minimum 10 digits).');
       return;
     }
 
@@ -27,6 +36,8 @@ export default function RegisterPage() {
     try {
       const response = await api.post('/api/auth/register', {
         gym_name: gymName,
+        gym_address: gymAddress,
+        gym_phone: gymPhone,
         name,
         email,
         password
@@ -85,6 +96,36 @@ export default function RegisterPage() {
                 value={gymName}
                 onChange={(e) => setGymName(e.target.value)}
                 placeholder="Elite Fitness Academy"
+                className="w-full bg-slate-950 border border-slate-850 focus:border-emerald-500/40 rounded-xl px-4 py-3 text-sm text-slate-100 placeholder-slate-600 focus:outline-none transition-all duration-200"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
+                Gym Address
+              </label>
+              <textarea
+                required
+                disabled={loading}
+                value={gymAddress}
+                onChange={(e) => setGymAddress(e.target.value)}
+                placeholder="123 Fitness Street, Health District, City, State, ZIP"
+                rows="3"
+                className="w-full bg-slate-950 border border-slate-850 focus:border-emerald-500/40 rounded-xl px-4 py-3 text-sm text-slate-100 placeholder-slate-600 focus:outline-none transition-all duration-200 resize-none"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
+                Gym Phone Number
+              </label>
+              <input
+                type="tel"
+                required
+                disabled={loading}
+                value={gymPhone}
+                onChange={(e) => setGymPhone(e.target.value)}
+                placeholder="+1 (555) 123-4567"
                 className="w-full bg-slate-950 border border-slate-850 focus:border-emerald-500/40 rounded-xl px-4 py-3 text-sm text-slate-100 placeholder-slate-600 focus:outline-none transition-all duration-200"
               />
             </div>

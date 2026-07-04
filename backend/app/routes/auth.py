@@ -10,20 +10,20 @@ def register():
     data = request.get_json() or {}
     
     gym_name = data.get('gym_name')
-    gym_address = data.get('gym_address', '123 Gym Street, Fitness Hub')
-    gym_phone = data.get('gym_phone', '+1 (555) 123-4567')
+    gym_address = data.get('gym_address')
+    gym_phone = data.get('gym_phone')
     name = data.get('name')
     email = data.get('email')
     password = data.get('password')
     
-    if not all([gym_name, name, email, password]):
-        return jsonify({'error': 'Missing required fields (gym_name, name, email, password)'}), 400
+    if not all([gym_name, gym_address, gym_phone, name, email, password]):
+        return jsonify({'error': 'Missing required fields (gym_name, gym_address, gym_phone, name, email, password)'}), 400
         
     if User.query.filter_by(email=email).first():
         return jsonify({'error': 'Email already registered'}), 400
         
     try:
-        # Create Gym with metadata
+        # Create Gym with user-provided data
         new_gym = Gym(name=gym_name, address=gym_address, phone=gym_phone)
         db.session.add(new_gym)
         db.session.flush() # Populate the Gym ID before commit
@@ -90,8 +90,8 @@ def login():
         
     gym = Gym.query.get(user.gym_id) if user.gym_id else None
     gym_name = gym.name if gym else None
-    gym_address = gym.address if gym else '123 Gym Street, Fitness Hub'
-    gym_phone = gym.phone if gym else '+1 (555) 123-4567'
+    gym_address = gym.address if gym else None
+    gym_phone = gym.phone if gym else None
     
     access_token = create_access_token(
         identity=str(user.id),

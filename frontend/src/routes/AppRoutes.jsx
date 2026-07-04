@@ -6,6 +6,10 @@ import LandingPage from '../pages/LandingPage';
 import LoginPage from '../pages/LoginPage';
 import RegisterPage from '../pages/RegisterPage';
 import DashboardPlaceholder from '../pages/DashboardPlaceholder';
+import MembersPage from '../pages/MembersPage';
+import AddMemberPage from '../pages/AddMemberPage';
+import ViewMemberPage from '../pages/ViewMemberPage';
+import EditMemberPage from '../pages/EditMemberPage';
 
 // Checks if the user is authenticated via JWT. Redirects to login if not.
 function ProtectedRoute({ children }) {
@@ -54,18 +58,13 @@ export default function AppRoutes() {
       >
         <Route path="dashboard" element={<DashboardPlaceholder />} />
         
+        {/* Members Management */}
+        <Route path="members" element={<MembersPage />} />
+        <Route path="members/add" element={<AddMemberPage />} />
+        <Route path="members/:id" element={<ViewMemberPage />} />
+        <Route path="members/:id/edit" element={<EditMemberPage />} />
+        
         {/* Sub-workspace placeholders with isolated scopes */}
-        <Route
-          path="members"
-          element={
-            <div className="bg-slate-900/40 p-6 rounded-2xl border border-slate-850">
-              <h2 className="text-xl font-bold text-white mb-2">Members Management</h2>
-              <p className="text-sm text-slate-400">
-                Future member registrations, search lists, and active profile logs. Data queried is filtered strictly by the tenant's gym_id.
-              </p>
-            </div>
-          }
-        />
         <Route
           path="attendance"
           element={
