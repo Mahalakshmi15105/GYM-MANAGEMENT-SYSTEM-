@@ -7,7 +7,7 @@ export default function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col w-full overflow-x-hidden">
+    <div className="min-h-screen bg-gray-50 text-gray-900 flex flex-col w-full overflow-x-hidden">
       {/* Sidebar with mobile toggle state */}
       <Sidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} />
       

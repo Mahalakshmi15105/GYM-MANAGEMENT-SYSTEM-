@@ -1,5 +1,6 @@
 from datetime import datetime
 from app.extensions import db
+from sqlalchemy import Numeric
 import uuid
 
 
@@ -52,6 +53,164 @@ class User(db.Model):
         }
 
 
+class Attendance(db.Model):
+    __tablename__ = 'attendance'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    
+    # Multi-tenant isolation - CRITICAL for SaaS
+    gym_id = db.Column(db.Integer, db.ForeignKey('gyms.id', ondelete='CASCADE'), nullable=False)
+    
+    # Member reference
+    member_id = db.Column(db.Integer, db.ForeignKey('members.id', ondelete='CASCADE'), nullable=False)
+    
+    # Attendance Information
+    check_in_time = db.Column(db.DateTime, nullable=False)
+    check_out_time = db.Column(db.DateTime, nullable=True)
+    attendance_date = db.Column(db.Date, nullable=False)
+    status = db.Column(db.String(20), nullable=False, default='Checked In')  # Checked In, Checked Out
+    notes = db.Column(db.Text, nullable=True)  # Additional notes
+    
+    # Timestamps
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    gym = db.relationship('Gym', backref='attendance_records')
+    member = db.relationship('Member', backref='attendance_records')
+    
+    # Composite index for tenant isolation and search performance
+    __table_args__ = (
+        db.Index('idx_gym_id_date', 'gym_id', 'attendance_date'),
+        db.Index('idx_gym_id_member_id', 'gym_id', 'member_id'),
+        db.Index('idx_gym_id_status', 'gym_id', 'status'),
+    )
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'gym_id': self.gym_id,
+            'member_id': self.member_id,
+            'member_name': f"{self.member.first_name} {self.member.last_name}" if self.member else None,
+            'member_phone': self.member.phone if self.member else None,
+            'check_in_time': self.check_in_time.isoformat() if self.check_in_time else None,
+            'check_out_time': self.check_out_time.isoformat() if self.check_out_time else None,
+            'attendance_date': self.attendance_date.isoformat() if self.attendance_date else None,
+            'status': self.status,
+            'notes': self.notes,
+            'duration_minutes': self.get_duration_minutes(),
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+        }
+
+    def get_duration_minutes(self):
+        """Calculate workout duration in minutes"""
+        if self.check_out_time and self.check_in_time:
+            delta = self.check_out_time - self.check_in_time
+            return int(delta.total_seconds() / 60)
+        return None
+
+
+class Payment(db.Model):
+    __tablename__ = 'payments'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    
+    # Multi-tenant isolation - CRITICAL for SaaS
+    gym_id = db.Column(db.Integer, db.ForeignKey('gyms.id', ondelete='CASCADE'), nullable=False)
+    
+    # Member and Plan references
+    member_id = db.Column(db.Integer, db.ForeignKey('members.id', ondelete='CASCADE'), nullable=False)
+    membership_plan_id = db.Column(db.Integer, db.ForeignKey('membership_plans.id', ondelete='SET NULL'), nullable=True)
+    
+    # Payment Information
+    payment_amount = db.Column(Numeric(10, 2), nullable=False)
+    payment_date = db.Column(db.Date, nullable=False)
+    payment_method = db.Column(db.String(20), nullable=False)  # Cash, UPI, Card, Bank Transfer
+    payment_status = db.Column(db.String(20), nullable=False, default='Paid')  # Paid, Pending, Failed
+    transaction_id = db.Column(db.String(100), nullable=True)  # Receipt/Transaction number
+    notes = db.Column(db.Text, nullable=True)  # Additional notes
+    
+    # Timestamps
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    gym = db.relationship('Gym', backref='payments')
+    member = db.relationship('Member', backref='payments')
+    membership_plan = db.relationship('MembershipPlan', backref='payments')
+    
+    # Composite index for tenant isolation and search performance
+    __table_args__ = (
+        db.Index('idx_gym_id_payment_date', 'gym_id', 'payment_date'),
+        db.Index('idx_gym_id_member_id', 'gym_id', 'member_id'),
+        db.Index('idx_gym_id_status', 'gym_id', 'payment_status'),
+    )
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'gym_id': self.gym_id,
+            'member_id': self.member_id,
+            'member_name': f"{self.member.first_name} {self.member.last_name}" if self.member else None,
+            'member_phone': self.member.phone if self.member else None,
+            'membership_plan_id': self.membership_plan_id,
+            'membership_plan_name': self.membership_plan.plan_name if self.membership_plan else None,
+            'payment_amount': float(self.payment_amount),
+            'payment_date': self.payment_date.isoformat() if self.payment_date else None,
+            'payment_method': self.payment_method,
+            'payment_status': self.payment_status,
+            'transaction_id': self.transaction_id,
+            'notes': self.notes,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+        }
+
+
+class MembershipPlan(db.Model):
+    __tablename__ = 'membership_plans'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    
+    # Multi-tenant isolation - CRITICAL for SaaS
+    gym_id = db.Column(db.Integer, db.ForeignKey('gyms.id', ondelete='CASCADE'), nullable=False)
+    
+    # Plan Information
+    plan_name = db.Column(db.String(100), nullable=False)
+    duration = db.Column(db.Integer, nullable=False)  # Duration in days
+    price = db.Column(Numeric(10, 2), nullable=False)  # Price with 2 decimal places
+    description = db.Column(db.Text, nullable=True)
+    
+    # Status: Active, Inactive
+    status = db.Column(db.String(20), nullable=False, default='Active')
+    
+    # Timestamps
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    gym = db.relationship('Gym', backref='membership_plans')
+    
+    # Composite index for tenant isolation and search performance
+    __table_args__ = (
+        db.Index('idx_gym_id_status_plans', 'gym_id', 'status'),
+        db.UniqueConstraint('gym_id', 'plan_name', name='unique_plan_name_per_gym'),
+    )
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'gym_id': self.gym_id,
+            'plan_name': self.plan_name,
+            'duration': self.duration,
+            'price': float(self.price),
+            'description': self.description,
+            'status': self.status,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+        }
+
+
 class Member(db.Model):
     __tablename__ = 'members'
     
@@ -60,8 +219,8 @@ class Member(db.Model):
     # Multi-tenant isolation - CRITICAL for SaaS
     gym_id = db.Column(db.Integer, db.ForeignKey('gyms.id', ondelete='CASCADE'), nullable=False)
     
-    # Auto-generated unique member ID
-    member_id = db.Column(db.String(20), nullable=False, unique=True, default=lambda: f"MEM{str(uuid.uuid4())[:8].upper()}")
+    # Auto-generated unique member ID (unique within gym, not globally)
+    member_id = db.Column(db.String(20), nullable=False, default=lambda: f"MEM{str(uuid.uuid4())[:8].upper()}")
     
     # Personal Information
     first_name = db.Column(db.String(50), nullable=False)
@@ -104,6 +263,7 @@ class Member(db.Model):
         db.Index('idx_gym_id_phone', 'gym_id', 'phone'),
         db.UniqueConstraint('gym_id', 'email', name='unique_email_per_gym'),
         db.UniqueConstraint('gym_id', 'phone', name='unique_phone_per_gym'),
+        db.UniqueConstraint('gym_id', 'member_id', name='unique_member_id_per_gym'),
     )
 
     def to_dict(self):

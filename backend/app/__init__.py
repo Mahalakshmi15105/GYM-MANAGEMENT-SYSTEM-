@@ -25,6 +25,22 @@ def create_app(config_class=Config):
     from app.routes.members import members_bp
     app.register_blueprint(members_bp, url_prefix='/api/members')
     
+    # Register membership plans blueprint
+    from app.routes.membership_plans import membership_plans_bp
+    app.register_blueprint(membership_plans_bp, url_prefix='/api/membership-plans')
+    
+    # Register payments blueprint
+    from app.routes.payments import payments_bp
+    app.register_blueprint(payments_bp, url_prefix='/api/payments')
+    
+    # Register attendance blueprint
+    from app.routes.attendance import attendance_bp
+    app.register_blueprint(attendance_bp, url_prefix='/api/attendance')
+    
+    # Register analytics blueprint
+    from app.routes.analytics import analytics_bp
+    app.register_blueprint(analytics_bp, url_prefix='/api/analytics')
+    
     # Create DB tables automatically on boot if DB is connected
     with app.app_context():
         try:

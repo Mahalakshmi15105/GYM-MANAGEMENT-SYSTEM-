@@ -5,22 +5,22 @@ export default function Navbar({ onMenuClick }) {
   const { user } = useAuth();
 
   return (
-    <header className="h-16 bg-slate-900/80 backdrop-blur-md border-b border-slate-850 flex items-center justify-between px-4 sm:px-6 lg:px-8 sticky top-0 z-10 text-slate-300 w-full">
+    <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 sm:px-6 lg:px-8 sticky top-0 z-10 text-gray-800 w-full shadow-sm">
       <div className="flex items-center gap-3">
         {/* Toggle menu button on mobile/tablet */}
         <button
           onClick={onMenuClick}
-          className="lg:hidden text-slate-400 hover:text-white p-1.5 focus:outline-none hover:bg-slate-800 rounded-lg transition-colors duration-200"
+          className="lg:hidden text-gray-600 hover:text-orange-600 p-1.5 focus:outline-none hover:bg-orange-50 rounded-lg transition-colors duration-200"
           aria-label="Open menu"
         >
-          <span className="text-xl">☰</span>
+          <span className="text-xl text-orange-600">☰</span>
         </button>
         
-        <h2 className="text-sm sm:text-base font-semibold text-slate-100">
+        <h2 className="text-sm sm:text-base font-semibold text-gray-900">
           Gym Workspace
         </h2>
         {user?.gym_id && (
-          <div className="text-xs bg-slate-800 text-slate-300 px-2.5 py-1 rounded-xl border border-slate-750 font-mono hidden sm:block">
+          <div className="text-xs bg-orange-50 text-orange-700 px-2.5 py-1 rounded-xl border border-orange-200 font-mono hidden sm:block">
             Tenant Gym ID: {user.gym_id}
           </div>
         )}
@@ -28,8 +28,8 @@ export default function Navbar({ onMenuClick }) {
       
       <div className="flex items-center gap-4">
         {/* Connection status */}
-        <div className="flex items-center gap-2 text-xs bg-emerald-500/10 text-emerald-400 px-3 py-1 rounded-xl border border-emerald-500/20">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+        <div className="flex items-center gap-2 text-xs bg-green-50 text-green-700 px-3 py-1 rounded-xl border border-green-200">
+          <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
           Connected
         </div>
       </div>

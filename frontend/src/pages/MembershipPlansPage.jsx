@@ -3,26 +3,26 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 
-export default function MembersPage() {
+export default function MembershipPlansPage() {
     const { user } = useAuth();
-    const [members, setMembers] = useState([]);
+    const [plans, setPlans] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [searchQuery, setSearchQuery] = useState('');
     const [statusFilter, setStatusFilter] = useState('All');
-    const [deleteModal, setDeleteModal] = useState({ isOpen: false, member: null });
+    const [deleteModal, setDeleteModal] = useState({ isOpen: false, plan: null });
 
     useEffect(() => {
-        fetchMembers();
+        fetchPlans();
     }, []);
 
-    const fetchMembers = async () => {
+    const fetchPlans = async () => {
         try {
-            const response = await api.get('/api/members');
-            setMembers(response.data.members || []);
+            const response = await api.get('/api/membership-plans');
+            setPlans(response.data.membership_plans || []);
         } catch (err) {
             console.error(err);
-            setError(err.response?.data?.error || 'Failed to fetch members');
+            setError(err.response?.data?.error || 'Failed to fetch membership plans');
         } finally {
             setLoading(false);
         }
@@ -30,50 +30,56 @@ export default function MembersPage() {
 
     const handleSearch = async (query) => {
         if (!query.trim()) {
-            fetchMembers();
+            fetchPlans();
             return;
         }
 
         try {
-            const response = await api.get(`/api/members/search?q=${encodeURIComponent(query)}`);
-            setMembers(response.data.members || []);
+            const response = await api.get(`/api/membership-plans/search?q=${encodeURIComponent(query)}`);
+            setPlans(response.data.membership_plans || []);
         } catch (err) {
             console.error(err);
             setError('Search failed');
         }
     };
 
-    const handleDelete = async (memberId) => {
+    const handleDelete = async (planId) => {
         try {
-            await api.delete(`/api/members/${memberId}`);
-            setMembers(members.filter(m => m.id !== memberId));
-            setDeleteModal({ isOpen: false, member: null });
+            await api.delete(`/api/membership-plans/${planId}`);
+            setPlans(plans.filter(p => p.id !== planId));
+            setDeleteModal({ isOpen: false, plan: null });
         } catch (err) {
             console.error(err);
-            setError(err.response?.data?.error || 'Failed to delete member');
+            setError(err.response?.data?.error || 'Failed to delete membership plan');
         }
     };
 
-    const filteredMembers = members.filter(member => {
-        if (statusFilter !== 'All' && member.status !== statusFilter) return false;
+    const filteredPlans = plans.filter(plan => {
+        if (statusFilter !== 'All' && plan.status !== statusFilter) return false;
         return true;
     });
 
-    const formatDate = (dateString) => {
-        if (!dateString) return '-';
-        return new Date(dateString).toLocaleDateString('en-US', {
-            month: 'short',
-            day: 'numeric',
-            year: 'numeric'
-        });
+    const formatPrice = (price) => {
+        return new Intl.NumberFormat('en-US', {
+            style: 'currency',
+            currency: 'USD'
+        }).format(price);
+    };
+
+    const formatDuration = (days) => {
+        if (days === 30) return '1 Month';
+        if (days === 90) return '3 Months';
+        if (days === 180) return '6 Months';
+        if (days === 365) return '1 Year';
+        if (days < 30) return `${days} Days`;
+        if (days % 30 === 0) return `${days / 30} Months`;
+        return `${days} Days`;
     };
 
     const getStatusColor = (status) => {
         switch (status) {
             case 'Active':
                 return 'bg-green-50 text-green-700 border-green-200';
-            case 'Expired':
-                return 'bg-red-50 text-red-700 border-red-200';
             case 'Inactive':
                 return 'bg-gray-50 text-gray-600 border-gray-200';
             default:
@@ -85,16 +91,16 @@ export default function MembersPage() {
         <div className="space-y-8">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900 mb-1">Members Management</h1>
+                    <h1 className="text-2xl font-bold text-gray-900 mb-1">Membership Plans</h1>
                     <p className="text-sm text-gray-600">
-                        Manage your gym members - Gym ID: {user?.gym_id}
+                        Manage your gym's membership plans - Gym ID: {user?.gym_id}
                     </p>
                 </div>
                 <Link
-                    to="/members/add"
+                    to="/membership-plans/add"
                     className="bg-orange-600 hover:bg-orange-700 text-white font-bold px-6 py-3 rounded-xl transition-all duration-200 self-start md:self-auto text-center shadow-sm"
                 >
-                    + Add Member
+                    + Add Plan
                 </Link>
             </div>
 
@@ -103,7 +109,7 @@ export default function MembersPage() {
                     <div className="flex-1">
                         <input
                             type="text"
-                            placeholder="Search by name, phone, email, or member ID..."
+                            placeholder="Search by plan name or description..."
                             value={searchQuery}
                             onChange={(e) => {
                                 setSearchQuery(e.target.value);
@@ -120,7 +126,6 @@ export default function MembersPage() {
                         >
                             <option value="All">All Status</option>
                             <option value="Active">Active</option>
-                            <option value="Expired">Expired</option>
                             <option value="Inactive">Inactive</option>
                         </select>
                     </div>
@@ -136,11 +141,11 @@ export default function MembersPage() {
             <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
                 {loading ? (
                     <div className="p-8 text-center text-gray-500">
-                        Loading members...
+                        Loading membership plans...
                     </div>
-                ) : filteredMembers.length === 0 ? (
+                ) : filteredPlans.length === 0 ? (
                     <div className="p-8 text-center text-gray-500">
-                        {searchQuery ? 'No members found matching your search.' : 'No members registered yet.'}
+                        {searchQuery ? 'No plans found matching your search.' : 'No membership plans created yet.'}
                     </div>
                 ) : (
                     <div className="overflow-x-auto">
@@ -148,25 +153,16 @@ export default function MembersPage() {
                             <thead>
                                 <tr className="border-b border-gray-200 bg-gray-50">
                                     <th className="text-left px-6 py-4 text-xs font-semibold uppercase tracking-wider text-gray-600">
-                                        Photo
+                                        Plan Name
                                     </th>
                                     <th className="text-left px-6 py-4 text-xs font-semibold uppercase tracking-wider text-gray-600">
-                                        Member ID
+                                        Duration
                                     </th>
                                     <th className="text-left px-6 py-4 text-xs font-semibold uppercase tracking-wider text-gray-600">
-                                        Full Name
+                                        Price
                                     </th>
                                     <th className="text-left px-6 py-4 text-xs font-semibold uppercase tracking-wider text-gray-600">
-                                        Phone
-                                    </th>
-                                    <th className="text-left px-6 py-4 text-xs font-semibold uppercase tracking-wider text-gray-600">
-                                        Plan
-                                    </th>
-                                    <th className="text-left px-6 py-4 text-xs font-semibold uppercase tracking-wider text-gray-600">
-                                        Start Date
-                                    </th>
-                                    <th className="text-left px-6 py-4 text-xs font-semibold uppercase tracking-wider text-gray-600">
-                                        End Date
+                                        Description
                                     </th>
                                     <th className="text-left px-6 py-4 text-xs font-semibold uppercase tracking-wider text-gray-600">
                                         Status
@@ -177,54 +173,41 @@ export default function MembersPage() {
                                 </tr>
                             </thead>
                             <tbody>
-                                {filteredMembers.map((member) => (
-                                    <tr key={member.id} className="border-b border-gray-100 hover:bg-gray-50">
-                                        <td className="px-6 py-4">
-                                            <div className="w-10 h-10 bg-orange-100 border border-orange-200 rounded-lg flex items-center justify-center">
-                                                <span className="text-sm font-semibold text-orange-700">
-                                                    {member.first_name?.charAt(0)?.toUpperCase() || '?'}
-                                                </span>
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4 text-sm font-mono text-gray-700">
-                                            {member.member_id}
-                                        </td>
+                                {filteredPlans.map((plan) => (
+                                    <tr key={plan.id} className="border-b border-gray-100 hover:bg-gray-50">
                                         <td className="px-6 py-4 text-sm text-gray-900 font-medium">
-                                            {member.first_name} {member.last_name}
-                                        </td>
-                                        <td className="px-6 py-4 text-sm font-mono text-gray-700">
-                                            {member.phone || '-'}
+                                            {plan.plan_name}
                                         </td>
                                         <td className="px-6 py-4 text-sm text-gray-700">
-                                            {member.membership_plan_name || '-'}
+                                            {formatDuration(plan.duration)}
                                         </td>
-                                        <td className="px-6 py-4 text-sm text-gray-700">
-                                            {formatDate(member.membership_start_date)}
+                                        <td className="px-6 py-4 text-sm text-gray-900 font-semibold">
+                                            {formatPrice(plan.price)}
                                         </td>
-                                        <td className="px-6 py-4 text-sm text-gray-700">
-                                            {formatDate(member.membership_end_date)}
+                                        <td className="px-6 py-4 text-sm text-gray-700 max-w-xs truncate">
+                                            {plan.description || '-'}
                                         </td>
                                         <td className="px-6 py-4">
-                                            <span className={`inline-flex px-2 py-1 rounded-full text-xs font-semibold border ${getStatusColor(member.status)}`}>
-                                                {member.status}
+                                            <span className={`inline-flex px-2 py-1 rounded-full text-xs font-semibold border ${getStatusColor(plan.status)}`}>
+                                                {plan.status}
                                             </span>
                                         </td>
                                         <td className="px-6 py-4">
                                             <div className="flex items-center gap-2">
                                                 <Link
-                                                    to={`/members/${member.id}`}
+                                                    to={`/membership-plans/${plan.id}`}
                                                     className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
                                                 >
                                                     View
                                                 </Link>
                                                 <Link
-                                                    to={`/members/${member.id}/edit`}
+                                                    to={`/membership-plans/${plan.id}/edit`}
                                                     className="bg-orange-600 hover:bg-orange-700 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
                                                 >
                                                     Edit
                                                 </Link>
                                                 <button
-                                                    onClick={() => setDeleteModal({ isOpen: true, member })}
+                                                    onClick={() => setDeleteModal({ isOpen: true, plan })}
                                                     className="bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
                                                 >
                                                     Delete
@@ -242,19 +225,19 @@ export default function MembersPage() {
             {deleteModal.isOpen && (
                 <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
                     <div className="bg-white border border-gray-200 rounded-2xl p-6 max-w-md w-full shadow-lg">
-                        <h3 className="text-lg font-bold text-gray-900 mb-2">Delete Member</h3>
+                        <h3 className="text-lg font-bold text-gray-900 mb-2">Delete Plan</h3>
                         <p className="text-sm text-gray-600 mb-6">
-                            Are you sure you want to delete <strong className="text-gray-900">{deleteModal.member?.first_name} {deleteModal.member?.last_name}</strong>? This action cannot be undone.
+                            Are you sure you want to delete <strong className="text-gray-900">{deleteModal.plan?.plan_name}</strong>? This action cannot be undone.
                         </p>
                         <div className="flex gap-3">
                             <button
-                                onClick={() => handleDelete(deleteModal.member.id)}
+                                onClick={() => handleDelete(deleteModal.plan.id)}
                                 className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-xl text-sm font-medium transition-colors"
                             >
                                 Delete
                             </button>
                             <button
-                                onClick={() => setDeleteModal({ isOpen: false, member: null })}
+                                onClick={() => setDeleteModal({ isOpen: false, plan: null })}
                                 className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-xl text-sm font-medium transition-colors"
                             >
                                 Cancel

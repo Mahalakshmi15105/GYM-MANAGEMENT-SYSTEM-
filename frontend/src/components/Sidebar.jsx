@@ -8,8 +8,9 @@ export default function Sidebar({ isOpen, setIsOpen }) {
   const links = [
     { name: 'Dashboard', path: '/dashboard', icon: '📊' },
     { name: 'Members', path: '/members', icon: '👥' },
+    { name: 'Membership Plans', path: '/membership-plans', icon: '💳' },
+    { name: 'Payments', path: '/payments', icon: '💰' },
     { name: 'Attendance', path: '/attendance', icon: '📅' },
-    { name: 'Payments', path: '/payments', icon: '💳' },
     { name: 'Trainers & Plans', path: '/plans', icon: '💪' },
     { name: 'Settings', path: '/settings', icon: '⚙️' },
   ];
@@ -25,21 +26,21 @@ export default function Sidebar({ isOpen, setIsOpen }) {
       )}
 
       <aside
-        className={`w-64 bg-slate-900 border-r border-slate-850 flex flex-col h-screen fixed left-0 top-0 text-slate-300 z-50 transition-transform duration-300 ${
+        className={`w-64 bg-white border-r border-gray-200 flex flex-col h-screen fixed left-0 top-0 text-gray-800 z-50 transition-transform duration-300 shadow-lg ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
         } lg:translate-x-0`}
       >
         {/* Brand logo & mobile close */}
-        <div className="p-6 border-b border-slate-800 flex items-center justify-between gap-3">
+        <div className="p-6 border-b border-gray-200 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <span className="text-2xl">🏋️‍♂️</span>
-            <span className="text-xl font-bold bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent">
+            <span className="text-xl font-bold text-orange-500">
               FlexiGym
             </span>
           </div>
           <button
             onClick={() => setIsOpen(false)}
-            className="lg:hidden text-slate-400 hover:text-white p-1 focus:outline-none text-lg"
+            className="lg:hidden text-gray-400 hover:text-gray-600 p-1 focus:outline-none text-lg"
           >
             ✕
           </button>
@@ -55,8 +56,8 @@ export default function Sidebar({ isOpen, setIsOpen }) {
               className={({ isActive }) =>
                 `flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${
                   isActive
-                    ? 'bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-md shadow-emerald-500/10'
-                    : 'hover:bg-slate-800/60 hover:text-slate-100'
+                    ? 'bg-orange-500 text-white shadow-md'
+                    : 'hover:bg-orange-50 hover:text-orange-600'
                 }`
               }
             >
@@ -67,19 +68,19 @@ export default function Sidebar({ isOpen, setIsOpen }) {
         </nav>
 
         {/* Logged in User Profile area */}
-        <div className="p-4 border-t border-slate-800 bg-slate-950/40">
+        <div className="p-4 border-t border-gray-200 bg-gray-50">
           <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center font-bold text-emerald-400 uppercase">
+            <div className="w-10 h-10 rounded-xl bg-orange-100 border border-orange-200 flex items-center justify-center font-bold text-orange-600 uppercase">
               {user?.name?.charAt(0) || 'U'}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-slate-100 truncate">{user?.name}</p>
-              <p className="text-xs text-slate-400 truncate capitalize">{user?.role?.replace('_', ' ')}</p>
+              <p className="text-sm font-semibold text-gray-900 truncate">{user?.name}</p>
+              <p className="text-xs text-gray-600 truncate capitalize">{user?.role?.replace('_', ' ')}</p>
             </div>
           </div>
           <button
             onClick={logout}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold bg-slate-800 hover:bg-rose-500/10 hover:text-rose-400 border border-slate-700 hover:border-rose-500/20 transition-all duration-200"
+            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold bg-gray-200 hover:bg-red-50 hover:text-red-600 border border-gray-200 hover:border-red-200 transition-all duration-200"
           >
             <span>🚪</span> Log Out
           </button>

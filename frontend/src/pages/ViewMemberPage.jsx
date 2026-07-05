@@ -37,13 +37,13 @@ export default function ViewMemberPage() {
   const getStatusColor = (status) => {
     switch (status) {
       case 'Active':
-        return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
+        return 'bg-green-50 text-green-700 border-green-200';
       case 'Expired':
-        return 'bg-rose-500/10 text-rose-400 border-rose-500/20';
+        return 'bg-red-50 text-red-700 border-red-200';
       case 'Inactive':
-        return 'bg-slate-500/10 text-slate-400 border-slate-500/20';
+        return 'bg-gray-50 text-gray-600 border-gray-200';
       default:
-        return 'bg-slate-500/10 text-slate-400 border-slate-500/20';
+        return 'bg-gray-50 text-gray-600 border-gray-200';
     }
   };
 
@@ -51,7 +51,7 @@ export default function ViewMemberPage() {
     return (
       <div className="space-y-8">
         <div className="flex items-center justify-center py-12">
-          <div className="text-slate-400">Loading member details...</div>
+          <div className="text-gray-600">Loading member details...</div>
         </div>
       </div>
     );
@@ -60,12 +60,12 @@ export default function ViewMemberPage() {
   if (error || !member) {
     return (
       <div className="space-y-8">
-        <div className="bg-rose-500/10 border border-rose-500/20 text-rose-400 text-sm p-4 rounded-xl">
+        <div className="bg-red-50 border border-red-200 text-red-700 text-sm p-4 rounded-xl">
           {error || 'Member not found'}
         </div>
         <button
           onClick={() => navigate('/members')}
-          className="bg-slate-700 hover:bg-slate-600 text-slate-200 px-4 py-2 rounded-xl text-sm font-medium transition-colors"
+          className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-xl text-sm font-medium transition-colors"
         >
           ← Back to Members
         </button>
@@ -78,21 +78,21 @@ export default function ViewMemberPage() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white mb-1">
+          <h1 className="text-2xl font-bold text-gray-900 mb-1">
             {member.first_name} {member.last_name}
           </h1>
-          <p className="text-sm text-slate-400">Member ID: {member.member_id}</p>
+          <p className="text-sm text-gray-600">Member ID: {member.member_id}</p>
         </div>
         <div className="flex flex-wrap gap-3">
           <button
             onClick={() => navigate(`/members/${id}/edit`)}
-            className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-sm font-medium transition-colors"
+            className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-xl text-sm font-medium transition-colors"
           >
             Edit Member
           </button>
           <button
             onClick={() => navigate('/members')}
-            className="bg-slate-700 hover:bg-slate-600 text-slate-200 px-4 py-2 rounded-xl text-sm font-medium transition-colors"
+            className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-xl text-sm font-medium transition-colors"
           >
             ← Back to Members
           </button>
@@ -103,72 +103,72 @@ export default function ViewMemberPage() {
         {/* Main Information */}
         <div className="lg:col-span-2 space-y-6">
           {/* Personal Details */}
-          <div className="bg-slate-900/50 border border-slate-850 p-6 rounded-2xl">
-            <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+          <div className="bg-white border border-gray-200 p-6 rounded-2xl shadow-sm">
+            <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
               <span>👤</span> Personal Information
             </h2>
             <div className="grid md:grid-cols-2 gap-4">
               <div className="space-y-3">
                 <div>
-                  <label className="text-xs uppercase font-semibold tracking-wider text-slate-400">First Name</label>
-                  <p className="text-slate-100 font-medium">{member.first_name || 'Not provided'}</p>
+                  <label className="text-xs uppercase font-semibold tracking-wider text-gray-600">First Name</label>
+                  <p className="text-gray-900 font-medium">{member.first_name || 'Not provided'}</p>
                 </div>
                 <div>
-                  <label className="text-xs uppercase font-semibold tracking-wider text-slate-400">Gender</label>
-                  <p className="text-slate-100 font-medium">{member.gender || 'Not specified'}</p>
+                  <label className="text-xs uppercase font-semibold tracking-wider text-gray-600">Gender</label>
+                  <p className="text-gray-900 font-medium">{member.gender || 'Not specified'}</p>
                 </div>
                 <div>
-                  <label className="text-xs uppercase font-semibold tracking-wider text-slate-400">Phone</label>
-                  <p className="text-slate-100 font-medium font-mono">{member.phone || 'Not provided'}</p>
+                  <label className="text-xs uppercase font-semibold tracking-wider text-gray-600">Phone</label>
+                  <p className="text-gray-900 font-medium font-mono">{member.phone || 'Not provided'}</p>
                 </div>
               </div>
               <div className="space-y-3">
                 <div>
-                  <label className="text-xs uppercase font-semibold tracking-wider text-slate-400">Last Name</label>
-                  <p className="text-slate-100 font-medium">{member.last_name || 'Not provided'}</p>
+                  <label className="text-xs uppercase font-semibold tracking-wider text-gray-600">Last Name</label>
+                  <p className="text-gray-900 font-medium">{member.last_name || 'Not provided'}</p>
                 </div>
                 <div>
-                  <label className="text-xs uppercase font-semibold tracking-wider text-slate-400">Date of Birth</label>
-                  <p className="text-slate-100 font-medium">{formatDate(member.date_of_birth)}</p>
+                  <label className="text-xs uppercase font-semibold tracking-wider text-gray-600">Date of Birth</label>
+                  <p className="text-gray-900 font-medium">{formatDate(member.date_of_birth)}</p>
                 </div>
                 <div>
-                  <label className="text-xs uppercase font-semibold tracking-wider text-slate-400">Email</label>
-                  <p className="text-slate-100 font-medium font-mono">{member.email || 'Not provided'}</p>
+                  <label className="text-xs uppercase font-semibold tracking-wider text-gray-600">Email</label>
+                  <p className="text-gray-900 font-medium font-mono">{member.email || 'Not provided'}</p>
                 </div>
               </div>
             </div>
             {member.address && (
-              <div className="mt-4 pt-4 border-t border-slate-800">
-                <label className="text-xs uppercase font-semibold tracking-wider text-slate-400">Address</label>
-                <p className="text-slate-100 font-medium mt-1">{member.address}</p>
+              <div className="mt-4 pt-4 border-t border-gray-200">
+                <label className="text-xs uppercase font-semibold tracking-wider text-gray-600">Address</label>
+                <p className="text-gray-900 font-medium mt-1">{member.address}</p>
               </div>
             )}
           </div>
 
           {/* Emergency Contact */}
-          <div className="bg-slate-900/50 border border-slate-850 p-6 rounded-2xl">
-            <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+          <div className="bg-white border border-gray-200 p-6 rounded-2xl shadow-sm">
+            <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
               <span>🚨</span> Emergency Contact
             </h2>
             <div className="grid md:grid-cols-2 gap-4">
               <div>
-                <label className="text-xs uppercase font-semibold tracking-wider text-slate-400">Contact Name</label>
-                <p className="text-slate-100 font-medium">{member.emergency_contact_name || 'Not provided'}</p>
+                <label className="text-xs uppercase font-semibold tracking-wider text-gray-600">Contact Name</label>
+                <p className="text-gray-900 font-medium">{member.emergency_contact_name || 'Not provided'}</p>
               </div>
               <div>
-                <label className="text-xs uppercase font-semibold tracking-wider text-slate-400">Contact Phone</label>
-                <p className="text-slate-100 font-medium font-mono">{member.emergency_contact_phone || 'Not provided'}</p>
+                <label className="text-xs uppercase font-semibold tracking-wider text-gray-600">Contact Phone</label>
+                <p className="text-gray-900 font-medium font-mono">{member.emergency_contact_phone || 'Not provided'}</p>
               </div>
             </div>
           </div>
 
           {/* Medical Notes */}
           {member.medical_notes && (
-            <div className="bg-slate-900/50 border border-slate-850 p-6 rounded-2xl">
-              <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+            <div className="bg-white border border-gray-200 p-6 rounded-2xl shadow-sm">
+              <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
                 <span>🏥</span> Medical Notes
               </h2>
-              <p className="text-slate-300 leading-relaxed">{member.medical_notes}</p>
+              <p className="text-gray-700 leading-relaxed">{member.medical_notes}</p>
             </div>
           )}
         </div>
@@ -176,13 +176,13 @@ export default function ViewMemberPage() {
         {/* Sidebar Information */}
         <div className="space-y-6">
           {/* Status */}
-          <div className="bg-slate-900/50 border border-slate-850 p-6 rounded-2xl">
-            <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+          <div className="bg-white border border-gray-200 p-6 rounded-2xl shadow-sm">
+            <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
               <span>📊</span> Status
             </h2>
             <div className="space-y-3">
               <div>
-                <label className="text-xs uppercase font-semibold tracking-wider text-slate-400">Current Status</label>
+                <label className="text-xs uppercase font-semibold tracking-wider text-gray-600">Current Status</label>
                 <div className="mt-1">
                   <span className={`inline-flex px-3 py-1 rounded-full text-xs font-semibold border ${getStatusColor(member.status)}`}>
                     {member.status}
@@ -190,44 +190,44 @@ export default function ViewMemberPage() {
                 </div>
               </div>
               <div>
-                <label className="text-xs uppercase font-semibold tracking-wider text-slate-400">Member Since</label>
-                <p className="text-slate-100 font-medium">{formatDate(member.created_at)}</p>
+                <label className="text-xs uppercase font-semibold tracking-wider text-gray-600">Member Since</label>
+                <p className="text-gray-900 font-medium">{formatDate(member.created_at)}</p>
               </div>
             </div>
           </div>
 
           {/* Membership Details */}
-          <div className="bg-slate-900/50 border border-slate-850 p-6 rounded-2xl">
-            <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+          <div className="bg-white border border-gray-200 p-6 rounded-2xl shadow-sm">
+            <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
               <span>💳</span> Membership
             </h2>
             <div className="space-y-3">
               <div>
-                <label className="text-xs uppercase font-semibold tracking-wider text-slate-400">Plan</label>
-                <p className="text-slate-100 font-medium">{member.membership_plan_name || 'No plan assigned'}</p>
+                <label className="text-xs uppercase font-semibold tracking-wider text-gray-600">Plan</label>
+                <p className="text-gray-900 font-medium">{member.membership_plan_name || 'No plan assigned'}</p>
               </div>
               <div>
-                <label className="text-xs uppercase font-semibold tracking-wider text-slate-400">Start Date</label>
-                <p className="text-slate-100 font-medium">{formatDate(member.membership_start_date)}</p>
+                <label className="text-xs uppercase font-semibold tracking-wider text-gray-600">Start Date</label>
+                <p className="text-gray-900 font-medium">{formatDate(member.membership_start_date)}</p>
               </div>
               <div>
-                <label className="text-xs uppercase font-semibold tracking-wider text-slate-400">End Date</label>
-                <p className="text-slate-100 font-medium">{formatDate(member.membership_end_date)}</p>
+                <label className="text-xs uppercase font-semibold tracking-wider text-gray-600">End Date</label>
+                <p className="text-gray-900 font-medium">{formatDate(member.membership_end_date)}</p>
               </div>
             </div>
           </div>
 
           {/* Profile Photo Placeholder */}
-          <div className="bg-slate-900/50 border border-slate-850 p-6 rounded-2xl">
-            <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+          <div className="bg-white border border-gray-200 p-6 rounded-2xl shadow-sm">
+            <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
               <span>📷</span> Profile Photo
             </h2>
-            <div className="w-32 h-32 bg-slate-800 border-2 border-slate-700 rounded-xl flex items-center justify-center mx-auto">
-              <span className="text-3xl font-bold text-slate-500">
+            <div className="w-32 h-32 bg-orange-100 border-2 border-orange-200 rounded-xl flex items-center justify-center mx-auto">
+              <span className="text-3xl font-bold text-orange-600">
                 {member.first_name?.charAt(0)?.toUpperCase() || '?'}
               </span>
             </div>
-            <p className="text-xs text-slate-500 text-center mt-2">Photo upload coming soon</p>
+            <p className="text-xs text-gray-500 text-center mt-2">Photo upload coming soon</p>
           </div>
         </div>
       </div>

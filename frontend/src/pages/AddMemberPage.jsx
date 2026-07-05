@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import api from '../services/api';
 
 export default function AddMemberPage() {
@@ -62,21 +62,21 @@ export default function AddMemberPage() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white mb-1">Add New Member</h1>
-          <p className="text-sm text-slate-400">Register a new member to your gym</p>
+          <h1 className="text-2xl font-bold text-gray-900 mb-1">Add New Member</h1>
+          <p className="text-sm text-gray-600">Register a new member to your gym</p>
         </div>
         <button
           onClick={() => navigate('/members')}
-          className="bg-slate-700 hover:bg-slate-600 text-slate-200 px-4 py-2 rounded-xl text-sm font-medium transition-colors self-start md:self-auto"
+          className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-xl text-sm font-medium transition-colors self-start md:self-auto"
         >
           ← Back to Members
         </button>
       </div>
 
       {/* Form */}
-      <div className="bg-slate-900/50 border border-slate-850 p-6 rounded-2xl">
+      <div className="bg-white border border-gray-200 p-6 rounded-2xl shadow-sm">
         {error && (
-          <div className="bg-rose-500/10 border border-rose-500/20 text-rose-400 text-sm p-4 rounded-xl mb-6">
+          <div className="bg-red-50 border border-red-200 text-red-700 text-sm p-4 rounded-xl mb-6">
             {error}
           </div>
         )}
@@ -84,10 +84,10 @@ export default function AddMemberPage() {
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Personal Information */}
           <div>
-            <h3 className="text-lg font-semibold text-white mb-4">Personal Information</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Personal Information</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-gray-600 mb-2">
                   First Name *
                 </label>
                 <input
@@ -96,11 +96,11 @@ export default function AddMemberPage() {
                   required
                   value={formData.first_name}
                   onChange={handleInputChange}
-                  className="w-full bg-slate-950 border border-slate-850 focus:border-emerald-500/40 rounded-xl px-4 py-3 text-sm text-slate-100 focus:outline-none transition-all duration-200"
+                  className="w-full bg-gray-50 border border-gray-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 rounded-xl px-4 py-3 text-sm text-gray-900 focus:outline-none transition-all duration-200"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-gray-600 mb-2">
                   Last Name
                 </label>
                 <input
@@ -108,18 +108,18 @@ export default function AddMemberPage() {
                   name="last_name"
                   value={formData.last_name}
                   onChange={handleInputChange}
-                  className="w-full bg-slate-950 border border-slate-850 focus:border-emerald-500/40 rounded-xl px-4 py-3 text-sm text-slate-100 focus:outline-none transition-all duration-200"
+                  className="w-full bg-gray-50 border border-gray-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 rounded-xl px-4 py-3 text-sm text-gray-900 focus:outline-none transition-all duration-200"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-gray-600 mb-2">
                   Gender
                 </label>
                 <select
                   name="gender"
                   value={formData.gender}
                   onChange={handleInputChange}
-                  className="w-full bg-slate-950 border border-slate-850 focus:border-emerald-500/40 rounded-xl px-4 py-3 text-sm text-slate-100 focus:outline-none transition-all duration-200"
+                  className="w-full bg-gray-50 border border-gray-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 rounded-xl px-4 py-3 text-sm text-gray-900 focus:outline-none transition-all duration-200"
                 >
                   <option value="">Select Gender</option>
                   <option value="Male">Male</option>
@@ -128,7 +128,7 @@ export default function AddMemberPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-gray-600 mb-2">
                   Date of Birth
                 </label>
                 <input
@@ -136,7 +136,7 @@ export default function AddMemberPage() {
                   name="date_of_birth"
                   value={formData.date_of_birth}
                   onChange={handleInputChange}
-                  className="w-full bg-slate-950 border border-slate-850 focus:border-emerald-500/40 rounded-xl px-4 py-3 text-sm text-slate-100 focus:outline-none transition-all duration-200"
+                  className="w-full bg-gray-50 border border-gray-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 rounded-xl px-4 py-3 text-sm text-gray-900 focus:outline-none transition-all duration-200"
                 />
               </div>
             </div>
@@ -144,10 +144,10 @@ export default function AddMemberPage() {
 
           {/* Contact Information */}
           <div>
-            <h3 className="text-lg font-semibold text-white mb-4">Contact Information</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Contact Information</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-gray-600 mb-2">
                   Phone Number *
                 </label>
                 <input
@@ -156,11 +156,11 @@ export default function AddMemberPage() {
                   required
                   value={formData.phone}
                   onChange={handleInputChange}
-                  className="w-full bg-slate-950 border border-slate-850 focus:border-emerald-500/40 rounded-xl px-4 py-3 text-sm text-slate-100 focus:outline-none transition-all duration-200"
+                  className="w-full bg-gray-50 border border-gray-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 rounded-xl px-4 py-3 text-sm text-gray-900 focus:outline-none transition-all duration-200"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-gray-600 mb-2">
                   Email Address
                 </label>
                 <input
@@ -168,12 +168,12 @@ export default function AddMemberPage() {
                   name="email"
                   value={formData.email}
                   onChange={handleInputChange}
-                  className="w-full bg-slate-950 border border-slate-850 focus:border-emerald-500/40 rounded-xl px-4 py-3 text-sm text-slate-100 focus:outline-none transition-all duration-200"
+                  className="w-full bg-gray-50 border border-gray-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 rounded-xl px-4 py-3 text-sm text-gray-900 focus:outline-none transition-all duration-200"
                 />
               </div>
             </div>
             <div className="mt-4">
-              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-gray-600 mb-2">
                 Address
               </label>
               <textarea
@@ -181,17 +181,17 @@ export default function AddMemberPage() {
                 value={formData.address}
                 onChange={handleInputChange}
                 rows="3"
-                className="w-full bg-slate-950 border border-slate-850 focus:border-emerald-500/40 rounded-xl px-4 py-3 text-sm text-slate-100 focus:outline-none transition-all duration-200 resize-none"
+                className="w-full bg-gray-50 border border-gray-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 rounded-xl px-4 py-3 text-sm text-gray-900 focus:outline-none transition-all duration-200 resize-none"
               />
             </div>
           </div>
 
           {/* Emergency Contact */}
           <div>
-            <h3 className="text-lg font-semibold text-white mb-4">Emergency Contact</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Emergency Contact</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-gray-600 mb-2">
                   Contact Name
                 </label>
                 <input
@@ -199,11 +199,11 @@ export default function AddMemberPage() {
                   name="emergency_contact_name"
                   value={formData.emergency_contact_name}
                   onChange={handleInputChange}
-                  className="w-full bg-slate-950 border border-slate-850 focus:border-emerald-500/40 rounded-xl px-4 py-3 text-sm text-slate-100 focus:outline-none transition-all duration-200"
+                  className="w-full bg-gray-50 border border-gray-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 rounded-xl px-4 py-3 text-sm text-gray-900 focus:outline-none transition-all duration-200"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-gray-600 mb-2">
                   Contact Phone
                 </label>
                 <input
@@ -211,7 +211,7 @@ export default function AddMemberPage() {
                   name="emergency_contact_phone"
                   value={formData.emergency_contact_phone}
                   onChange={handleInputChange}
-                  className="w-full bg-slate-950 border border-slate-850 focus:border-emerald-500/40 rounded-xl px-4 py-3 text-sm text-slate-100 focus:outline-none transition-all duration-200"
+                  className="w-full bg-gray-50 border border-gray-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 rounded-xl px-4 py-3 text-sm text-gray-900 focus:outline-none transition-all duration-200"
                 />
               </div>
             </div>
@@ -219,10 +219,10 @@ export default function AddMemberPage() {
 
           {/* Membership Information */}
           <div>
-            <h3 className="text-lg font-semibold text-white mb-4">Membership Information</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Membership Information</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-gray-600 mb-2">
                   Membership Plan
                 </label>
                 <input
@@ -231,18 +231,21 @@ export default function AddMemberPage() {
                   value={formData.membership_plan_name}
                   onChange={handleInputChange}
                   placeholder="e.g., Premium Monthly, Basic Annual"
-                  className="w-full bg-slate-950 border border-slate-850 focus:border-emerald-500/40 rounded-xl px-4 py-3 text-sm text-slate-100 placeholder-slate-600 focus:outline-none transition-all duration-200"
+                  className="w-full bg-gray-50 border border-gray-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 rounded-xl px-4 py-3 text-sm text-gray-900 placeholder-gray-500 focus:outline-none transition-all duration-200"
                 />
+                <p className="text-xs text-gray-500 mt-1">
+                  Tip: Create plans in <Link to="/membership-plans" className="text-orange-600 hover:underline">Membership Plans</Link> section
+                </p>
               </div>
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-gray-600 mb-2">
                   Status
                 </label>
                 <select
                   name="status"
                   value={formData.status}
                   onChange={handleInputChange}
-                  className="w-full bg-slate-950 border border-slate-850 focus:border-emerald-500/40 rounded-xl px-4 py-3 text-sm text-slate-100 focus:outline-none transition-all duration-200"
+                  className="w-full bg-gray-50 border border-gray-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 rounded-xl px-4 py-3 text-sm text-gray-900 focus:outline-none transition-all duration-200"
                 >
                   <option value="Active">Active</option>
                   <option value="Inactive">Inactive</option>
@@ -250,7 +253,7 @@ export default function AddMemberPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-gray-600 mb-2">
                   Start Date *
                 </label>
                 <input
@@ -259,11 +262,11 @@ export default function AddMemberPage() {
                   required
                   value={formData.membership_start_date}
                   onChange={handleInputChange}
-                  className="w-full bg-slate-950 border border-slate-850 focus:border-emerald-500/40 rounded-xl px-4 py-3 text-sm text-slate-100 focus:outline-none transition-all duration-200"
+                  className="w-full bg-gray-50 border border-gray-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 rounded-xl px-4 py-3 text-sm text-gray-900 focus:outline-none transition-all duration-200"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-gray-600 mb-2">
                   End Date *
                 </label>
                 <input
@@ -272,12 +275,12 @@ export default function AddMemberPage() {
                   required
                   value={formData.membership_end_date}
                   onChange={handleInputChange}
-                  className="w-full bg-slate-950 border border-slate-850 focus:border-emerald-500/40 rounded-xl px-4 py-3 text-sm text-slate-100 focus:outline-none transition-all duration-200"
+                  className="w-full bg-gray-50 border border-gray-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 rounded-xl px-4 py-3 text-sm text-gray-900 focus:outline-none transition-all duration-200"
                 />
               </div>
             </div>
             <div className="mt-4">
-              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-gray-600 mb-2">
                 Medical Notes
               </label>
               <textarea
@@ -286,7 +289,7 @@ export default function AddMemberPage() {
                 onChange={handleInputChange}
                 rows="3"
                 placeholder="Any medical conditions, allergies, or special requirements..."
-                className="w-full bg-slate-950 border border-slate-850 focus:border-emerald-500/40 rounded-xl px-4 py-3 text-sm text-slate-100 placeholder-slate-600 focus:outline-none transition-all duration-200 resize-none"
+                className="w-full bg-gray-50 border border-gray-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 rounded-xl px-4 py-3 text-sm text-gray-900 placeholder-gray-500 focus:outline-none transition-all duration-200 resize-none"
               />
             </div>
           </div>
@@ -296,14 +299,14 @@ export default function AddMemberPage() {
             <button
               type="submit"
               disabled={loading}
-              className="bg-gradient-to-r from-emerald-400 to-teal-500 hover:from-emerald-500 hover:to-teal-600 text-slate-950 font-bold py-3 px-6 rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="bg-orange-600 hover:bg-orange-700 text-white font-bold py-3 px-6 rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? 'Adding Member...' : 'Add Member'}
             </button>
             <button
               type="button"
               onClick={() => navigate('/members')}
-              className="bg-slate-700 hover:bg-slate-600 text-slate-200 font-medium py-3 px-6 rounded-xl transition-colors"
+              className="bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-3 px-6 rounded-xl transition-colors"
             >
               Cancel
             </button>
