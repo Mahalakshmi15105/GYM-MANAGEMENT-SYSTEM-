@@ -1,6 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { AdminDataTable, AdminActionModal, AdminMetricCard } from '../components/admin';
 import api from '../services/api';
+import {
+  UsersIcon,
+  CheckCircleIcon,
+  XCircleIcon,
+  ShieldCheckIcon
+} from '@heroicons/react/24/outline';
 
 const UserManagement = () => {
   const [users, setUsers] = useState([]);
@@ -173,17 +179,20 @@ const UserManagement = () => {
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto space-y-6">
         <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">👥 User Management</h1>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2 flex items-center gap-2">
+            <UsersIcon className="w-8 h-8" />
+            User Management
+          </h1>
           <p className="text-gray-600">Manage user accounts across all gyms on the platform</p>
         </div>
 
         <section>
           <h2 className="text-xl font-semibold text-gray-900 mb-4">User Overview</h2>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            <AdminMetricCard title="Total Users" value={metrics.total} icon="👥" color="blue" />
-            <AdminMetricCard title="Active Users" value={metrics.active} icon="✅" color="green" />
-            <AdminMetricCard title="Inactive Users" value={metrics.inactive} icon="❌" color="red" />
-            <AdminMetricCard title="Super Admins" value={metrics.super_admins} icon="🛡️" color="orange" />
+            <AdminMetricCard title="Total Users" value={metrics.total} icon={<UsersIcon className="w-6 h-6" />} color="blue" />
+            <AdminMetricCard title="Active Users" value={metrics.active} icon={<CheckCircleIcon className="w-6 h-6" />} color="green" />
+            <AdminMetricCard title="Inactive Users" value={metrics.inactive} icon={<XCircleIcon className="w-6 h-6" />} color="red" />
+            <AdminMetricCard title="Super Admins" value={metrics.super_admins} icon={<ShieldCheckIcon className="w-6 h-6" />} color="orange" />
           </div>
         </section>
 

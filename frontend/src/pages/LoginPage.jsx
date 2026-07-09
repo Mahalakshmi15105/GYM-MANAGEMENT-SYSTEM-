@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
+import { BoltIcon } from '@heroicons/react/24/outline';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -11,6 +12,13 @@ export default function LoginPage() {
   
   const { login } = useAuth();
   const navigate = useNavigate();
+
+  // Ensure fields are always empty when component mounts
+  useEffect(() => {
+    setEmail('');
+    setPassword('');
+    setError('');
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -26,8 +34,25 @@ export default function LoginPage() {
       const response = await api.post('/api/auth/login', { email, password });
       const { token, user } = response.data;
       
+      // Store authentication data
       login(token, user);
-      navigate('/dashboard');
+      
+      // Role-based redirection
+      if (user.role === 'super_admin') {
+        navigate('/admin/dashboard');
+      } else if (user.role === 'gym_owner') {
+        navigate('/dashboard');
+      } else if (user.role === 'member') {
+        // Check if this is first time login for password change
+        if (user.first_time_login) {
+          navigate('/member/change-password');
+        } else {
+          navigate('/member/dashboard');
+        }
+      } else {
+        // Fallback for unknown roles
+        navigate('/dashboard');
+      }
     } catch (err) {
       console.error(err);
       setError(
@@ -48,7 +73,7 @@ export default function LoginPage() {
         {/* Brand */}
         <div className="text-center mb-8">
           <Link to="/" className="inline-flex items-center gap-2 text-3xl font-extrabold text-gray-900">
-            <span>🏋️‍♂️</span>
+            <BoltIcon className="w-10 h-10 text-orange-500" />
             <span className="text-orange-500">
               FlexiGym
             </span>
@@ -66,7 +91,7 @@ export default function LoginPage() {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit} className="space-y-5" autoComplete="off">
             <div>
               <label className="block text-xs font-semibold uppercase tracking-wider text-gray-600 mb-2">
                 Email Address
@@ -77,7 +102,11 @@ export default function LoginPage() {
                 disabled={loading}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="owner@yourgym.com"
+                placeholder="Enter your email"
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="off"
+                spellCheck="false"
                 className="w-full bg-gray-50 border border-gray-200 focus:border-orange-400 focus:bg-white rounded-xl px-4 py-3 text-sm text-gray-900 placeholder-gray-500 focus:outline-none transition-all duration-200"
               />
             </div>
@@ -94,7 +123,8 @@ export default function LoginPage() {
                 disabled={loading}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
+                placeholder="Enter your password"
+                autoComplete="off"
                 className="w-full bg-gray-50 border border-gray-200 focus:border-orange-400 focus:bg-white rounded-xl px-4 py-3 text-sm text-gray-900 placeholder-gray-500 focus:outline-none transition-all duration-200"
               />
             </div>

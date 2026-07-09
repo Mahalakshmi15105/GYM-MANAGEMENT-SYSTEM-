@@ -3,6 +3,7 @@ from flask_jwt_extended import jwt_required, get_jwt
 from sqlalchemy import func, desc, and_
 from app.extensions import db
 from app.models import Member, MembershipPlan, Payment, Attendance
+from app.currency_utils import get_gym_currency
 from datetime import datetime, date, timedelta
 
 analytics_bp = Blueprint('analytics', __name__)
@@ -163,6 +164,7 @@ def get_dashboard_analytics():
             members_growth = (recent_members_count / total_members) * 100
         
         return jsonify({
+            'currency': get_gym_currency(gym_id),
             'members': {
                 'total': total_members,
                 'active': active_members,
@@ -225,6 +227,7 @@ def get_quick_stats():
             ).scalar() or 0
         
         return jsonify({
+            'currency': get_gym_currency(gym_id),
             'total_members': total_members,
             'todays_attendance': todays_attendance,
             'total_plans': total_plans,

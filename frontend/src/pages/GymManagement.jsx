@@ -1,6 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { AdminDataTable, AdminMetricCard, AdminActionModal } from '../components/admin';
 import api from '../services/api';
+import {
+  BuildingOfficeIcon,
+  ArrowPathIcon,
+  CheckCircleIcon,
+  ClockIcon,
+  NoSymbolIcon,
+  ExclamationTriangleIcon,
+  XMarkIcon
+} from '@heroicons/react/24/outline';
 
 /**
  * Super Admin Gym Management interface
@@ -288,8 +297,9 @@ const GymManagement = () => {
         <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                🏢 Gym Management
+              <h1 className="text-3xl font-bold text-gray-900 mb-2 flex items-center gap-2">
+                <BuildingOfficeIcon className="w-8 h-8" />
+                Gym Management
               </h1>
               <p className="text-gray-600">
                 Manage gym registrations, approvals, and account status across the platform
@@ -300,7 +310,7 @@ const GymManagement = () => {
               disabled={loading}
               className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 disabled:opacity-50 transition-colors flex items-center gap-2"
             >
-              <span className={loading ? 'animate-spin' : ''}>🔄</span>
+              <ArrowPathIcon className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
               Refresh
             </button>
           </div>
@@ -315,7 +325,7 @@ const GymManagement = () => {
                 title="Total Gyms"
                 value={metrics.total_gyms}
                 subtitle="All registered"
-                icon="🏢"
+                icon={<BuildingOfficeIcon className="w-6 h-6" />}
                 color="blue"
               />
               
@@ -323,7 +333,7 @@ const GymManagement = () => {
                 title="Active Gyms"
                 value={metrics.active_gyms}
                 subtitle="Currently operational"
-                icon="✅"
+                icon={<CheckCircleIcon className="w-6 h-6" />}
                 color="green"
               />
               
@@ -331,7 +341,7 @@ const GymManagement = () => {
                 title="Pending Approval"
                 value={metrics.pending_gyms}
                 subtitle="Awaiting review"
-                icon="⏳"
+                icon={<ClockIcon className="w-6 h-6" />}
                 trend={metrics.pending_gyms > 5 ? 'High Priority' : 'Normal'}
                 trendDirection={metrics.pending_gyms > 5 ? 'down' : 'neutral'}
                 color="yellow"
@@ -341,7 +351,7 @@ const GymManagement = () => {
                 title="Suspended"
                 value={metrics.suspended_gyms}
                 subtitle="Temporarily disabled"
-                icon="🚫"
+                icon={<NoSymbolIcon className="w-6 h-6" />}
                 color="red"
               />
             </div>
@@ -352,7 +362,7 @@ const GymManagement = () => {
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-2xl p-4">
             <div className="flex items-center gap-3">
-              <span className="text-red-500 text-xl">⚠️</span>
+              <ExclamationTriangleIcon className="w-6 h-6 text-red-500" />
               <div>
                 <h3 className="font-medium text-red-900">Error</h3>
                 <p className="text-red-700 text-sm">{error}</p>
@@ -361,7 +371,7 @@ const GymManagement = () => {
                 onClick={() => setError(null)}
                 className="ml-auto text-red-400 hover:text-red-600"
               >
-                ✕
+                <XMarkIcon className="w-5 h-5" />
               </button>
             </div>
           </div>

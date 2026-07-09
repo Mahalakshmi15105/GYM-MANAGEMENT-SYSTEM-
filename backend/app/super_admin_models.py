@@ -230,3 +230,35 @@ class GymSubscription(db.Model):
             'max_trainers': self.max_trainers,
             'features': self.features or {}
         }
+
+
+class PlatformSubscriptionPlan(db.Model):
+    """Platform-wide subscription plans managed by super admin"""
+    __tablename__ = 'platform_subscription_plans'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    plan_name = db.Column(db.String(100), unique=True, nullable=False)
+    price = db.Column(Numeric(10, 2), nullable=False)
+    currency = db.Column(db.String(10), nullable=False, default='INR')
+    billing_cycle = db.Column(db.String(50), nullable=False, default='monthly')
+    description = db.Column(db.Text)
+    features = db.Column(db.JSON, nullable=True)
+    recommended = db.Column(db.Boolean, nullable=False, default=False)
+    is_active = db.Column(db.Boolean, nullable=False, default=True)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'plan_name': self.plan_name,
+            'price': float(self.price),
+            'currency': self.currency,
+            'billing_cycle': self.billing_cycle,
+            'description': self.description,
+            'features': self.features,
+            'recommended': self.recommended,
+            'is_active': self.is_active,
+            'created_at': self.created_at.isoformat(),
+            'updated_at': self.updated_at.isoformat()
+        }

@@ -65,17 +65,17 @@ describe('Sidebar', () => {
       expect(screen.getByText('Activity Logs')).toBeInTheDocument();
     });
 
-    it('should render gym management section with divider', () => {
+    it('should NOT render gym management links for Super Admin', () => {
       render(<TestSidebar />);
       
-      // Should have section divider
-      expect(screen.getByText('Gym Management')).toBeInTheDocument();
-      
-      // Should have gym management links
-      expect(screen.getByText('Members')).toBeInTheDocument();
-      expect(screen.getByText('Membership Plans')).toBeInTheDocument();
-      expect(screen.getByText('Payments')).toBeInTheDocument();
-      expect(screen.getByText('Attendance')).toBeInTheDocument();
+      // Should NOT have gym management links
+      expect(screen.queryByText('Members')).not.toBeInTheDocument();
+      expect(screen.queryByText('Membership Plans')).not.toBeInTheDocument();
+      expect(screen.queryByText('Payments')).not.toBeInTheDocument();
+      expect(screen.queryByText('Attendance')).not.toBeInTheDocument();
+      expect(screen.queryByText('Trainers & Plans')).not.toBeInTheDocument();
+      expect(screen.queryByText('Gym Profile')).not.toBeInTheDocument();
+      expect(screen.queryByText('Settings')).not.toBeInTheDocument();
     });
 
     it('should show admin badge in user profile', () => {
@@ -88,7 +88,10 @@ describe('Sidebar', () => {
       render(<TestSidebar />);
       
       const avatar = screen.getByText('S'); // First letter of "Super Admin"
-      expect(avatar.parentElement).toHaveClass('bg-red-100', 'border-red-200', 'text-red-600');
+      expect(avatar).toBeInTheDocument();
+      // The avatar div should have the classes
+      const avatarDiv = avatar.closest('div.w-10.h-10');
+      expect(avatarDiv).toHaveClass('bg-red-100', 'border-red-200', 'text-red-600');
     });
   });
 
@@ -123,7 +126,10 @@ describe('Sidebar', () => {
       render(<TestSidebar />);
       
       const avatar = screen.getByText('G'); // First letter of "Gym Owner"
-      expect(avatar.parentElement).toHaveClass('bg-orange-100', 'border-orange-200', 'text-orange-600');
+      expect(avatar).toBeInTheDocument();
+      // The avatar div should have the classes
+      const avatarDiv = avatar.closest('div.w-10.h-10');
+      expect(avatarDiv).toHaveClass('bg-orange-100', 'border-orange-200', 'text-orange-600');
     });
   });
 

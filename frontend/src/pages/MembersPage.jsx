@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
+import { PlusIcon, KeyIcon } from '@heroicons/react/24/outline';
 
 export default function MembersPage() {
     const { user } = useAuth();
@@ -92,9 +93,9 @@ export default function MembersPage() {
                 </div>
                 <Link
                     to="/members/add"
-                    className="bg-orange-600 hover:bg-orange-700 text-white font-bold px-6 py-3 rounded-xl transition-all duration-200 self-start md:self-auto text-center shadow-sm"
+                    className="bg-orange-600 hover:bg-orange-700 text-white font-bold px-6 py-3 rounded-xl transition-all duration-200 self-start md:self-auto text-center shadow-sm flex items-center gap-2"
                 >
-                    + Add Member
+                    <PlusIcon className="w-4 h-4" /> Add Member
                 </Link>
             </div>
 
@@ -160,6 +161,12 @@ export default function MembersPage() {
                                         Phone
                                     </th>
                                     <th className="text-left px-6 py-4 text-xs font-semibold uppercase tracking-wider text-gray-600">
+                                        Email
+                                    </th>
+                                    <th className="text-left px-6 py-4 text-xs font-semibold uppercase tracking-wider text-gray-600">
+                                        Account
+                                    </th>
+                                    <th className="text-left px-6 py-4 text-xs font-semibold uppercase tracking-wider text-gray-600">
                                         Plan
                                     </th>
                                     <th className="text-left px-6 py-4 text-xs font-semibold uppercase tracking-wider text-gray-600">
@@ -194,6 +201,20 @@ export default function MembersPage() {
                                         </td>
                                         <td className="px-6 py-4 text-sm font-mono text-gray-700">
                                             {member.phone || '-'}
+                                        </td>
+                                        <td className="px-6 py-4 text-sm font-mono text-gray-700">
+                                            {member.email || '-'}
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            {member.has_account ? (
+                                                <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold border bg-green-50 text-green-700 border-green-200">
+                                                    <KeyIcon className="w-3 h-3" /> Active
+                                                </span>
+                                            ) : (
+                                                <span className="inline-flex px-2 py-1 rounded-full text-xs font-semibold border bg-gray-50 text-gray-600 border-gray-200">
+                                                    No Account
+                                                </span>
+                                            )}
                                         </td>
                                         <td className="px-6 py-4 text-sm text-gray-700">
                                             {member.membership_plan_name || '-'}

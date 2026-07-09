@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { AdminDataTable, AdminActionModal, AdminMetricCard, AdminChart } from '../components/admin';
 import api from '../services/api';
+import { CreditCardIcon, CheckCircleIcon, ExclamationTriangleIcon, XCircleIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
 
 /**
  * Subscription Management interface for Super Admin
@@ -19,11 +20,16 @@ const SubscriptionManagement = () => {
     per_page: 20
   });
 
+  // Platform plans state
+  const [plans, setPlans] = useState([]);
+  const [plansLoading, setPlansLoading] = useState(false);
+
   // Modal states
   const [modalState, setModalState] = useState({
     isOpen: false,
     type: null,
     subscription: null,
+    plan: null,
     loading: false
   });
 
@@ -37,7 +43,63 @@ const SubscriptionManagement = () => {
 
   useEffect(() => {
     fetchSubscriptions();
+    fetchPlans();
   }, [filters]);
+
+  // Fetch platform plans
+  const fetchPlans = async () => {
+    try {
+      setPlansLoading(true);
+      const response = await api.get('/api/admin/subscription-plans');
+      setPlans(response.data.plans);
+    } catch (err) {
+      console.error('Failed to fetch plans:', err);
+    } finally {
+      setPlansLoading(false);
+    }
+  };
+
+  // Handle plan actions
+  const openPlanModal = (type, plan = null) => {
+    setModalState({
+      isOpen: true,
+      type,
+      plan,
+      subscription: null,
+      loading: false
+    });
+  };
+
+  const handlePlanAction = async (action, plan, formData = {}) => {
+    try {
+      setModalState(prev => ({ ...prev, loading: true }));
+
+      let response;
+      switch (action) {
+        case 'create':
+          response = await api.post('/api/admin/subscription-plans', formData);
+          break;
+        case 'update':
+          response = await api.put(`/api/admin/subscription-plans/${plan.id}`, formData);
+          break;
+        case 'delete':
+          response = await api.delete(`/api/admin/subscription-plans/${plan.id}`);
+          break;
+        default:
+          throw new Error(`Unknown action: ${action}`);
+      }
+
+      await fetchPlans();
+      closeModal();
+
+      console.log(`${action} successful:`, response.data.message);
+
+    } catch (err) {
+      console.error(`Failed to ${action} plan:`, err);
+      setError(err.response?.data?.error || `Failed to ${action} plan`);
+      setModalState(prev => ({ ...prev, loading: false }));
+    }
+  };
 
   const fetchSubscriptions = async () => {
     try {
@@ -244,9 +306,148 @@ const SubscriptionManagement = () => {
   ];
 
   const renderModal = () => {
-    const { type, subscription } = modalState;
+    const { type, subscription, plan } = modalState;
     
-    if (!type || !subscription) return null;
+    if (!type) return null;
+
+    if (type === 'createPlan' || type === 'editPlan' || type === 'deletePlan') {
+      const modalProps = {
+        isOpen: modalState.isOpen,
+        onClose: closeModal,
+        loading: modalState.loading
+      };
+
+      if (type === 'deletePlan') {
+        return (
+          <AdminActionModal
+            {...modalProps}
+            title="Delete Plan"
+            message={`Are you sure you want to delete the plan "${plan.plan_name}"?`}
+            confirmText="Delete"
+            type="warning"
+            onConfirm={() => handlePlanAction('delete', plan)}
+          />
+        );
+      }
+
+      const isCreate = type === 'createPlan';
+      const defaultPlan = plan || {
+        plan_name: '',
+        price: '',
+        currency: 'INR',
+        billing_cycle: 'monthly',
+        description: '',
+        features: [],
+        recommended: false,
+        is_active: true
+      };
+
+      return (
+        <AdminActionModal
+          {...modalProps}
+          title={isCreate ? "Create Plan" : "Edit Plan"}
+          message={isCreate ? "Add a new platform subscription plan" : "Edit the subscription plan details"}
+          confirmText={isCreate ? "Create Plan" : "Update Plan"}
+          type="info"
+          onConfirm={(formData) => {
+            const processedData = {
+              ...formData,
+              price: parseFloat(formData.price),
+              features: formData.features.split(',').map(s => s.trim()).filter(Boolean),
+              recommended: formData.recommended === 'on',
+              is_active: formData.is_active === 'on'
+            };
+            handlePlanAction(isCreate ? 'create' : 'update', plan, processedData);
+          }}
+        >
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Plan Name
+              </label>
+              <input
+                type="text"
+                name="plan_name"
+                defaultValue={defaultPlan.plan_name}
+                className="w-full p-2 border border-gray-300 rounded-md"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Price (₹)
+              </label>
+              <input
+                type="number"
+                name="price"
+                defaultValue={defaultPlan.price}
+                className="w-full p-2 border border-gray-300 rounded-md"
+                step="0.01"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Billing Cycle
+              </label>
+              <select
+                name="billing_cycle"
+                defaultValue={defaultPlan.billing_cycle}
+                className="w-full p-2 border border-gray-300 rounded-md"
+              >
+                <option value="monthly">Monthly</option>
+                <option value="yearly">Yearly</option>
+                <option value="quarterly">Quarterly</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Description
+              </label>
+              <textarea
+                name="description"
+                defaultValue={defaultPlan.description}
+                className="w-full p-2 border border-gray-300 rounded-md"
+                rows="3"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Features (comma separated)
+              </label>
+              <input
+                type="text"
+                name="features"
+                defaultValue={defaultPlan.features?.join(', ') || ''}
+                className="w-full p-2 border border-gray-300 rounded-md"
+              />
+            </div>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  name="recommended"
+                  defaultChecked={defaultPlan.recommended}
+                  className="mr-2"
+                />
+                <label className="text-sm text-gray-700">Recommended</label>
+              </div>
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  name="is_active"
+                  defaultChecked={defaultPlan.is_active}
+                  className="mr-2"
+                />
+                <label className="text-sm text-gray-700">Active</label>
+              </div>
+            </div>
+          </div>
+        </AdminActionModal>
+      );
+    }
+    
+    if (!subscription) return null;
 
     const modalProps = {
       isOpen: modalState.isOpen,
@@ -362,7 +563,7 @@ const SubscriptionManagement = () => {
       <div className="min-h-screen bg-gray-50 p-6">
         <div className="max-w-7xl mx-auto">
           <div className="bg-red-50 border border-red-200 rounded-2xl p-8 text-center">
-            <div className="text-red-600 text-6xl mb-4">⚠️</div>
+            <ExclamationTriangleIcon className="w-16 h-16 text-red-600 mx-auto mb-4" />
             <h2 className="text-xl font-semibold text-red-900 mb-2">Error Loading Subscriptions</h2>
             <p className="text-red-700 mb-4">{error}</p>
             <button
@@ -384,8 +585,9 @@ const SubscriptionManagement = () => {
         <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                💳 Subscription Management
+              <h1 className="text-3xl font-bold text-gray-900 mb-2 flex items-center gap-2">
+                <CreditCardIcon className="w-8 h-8" />
+                Subscription Management
               </h1>
               <p className="text-gray-600">
                 Manage gym subscriptions, billing cycles, and revenue analytics
@@ -407,7 +609,7 @@ const SubscriptionManagement = () => {
                 disabled={loading}
                 className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 disabled:opacity-50 transition-colors flex items-center gap-2"
               >
-                <span className={loading ? 'animate-spin' : ''}>🔄</span>
+                <ArrowPathIcon className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
                 Refresh
               </button>
             </div>
@@ -422,21 +624,21 @@ const SubscriptionManagement = () => {
               title="Total Subscriptions"
               value={metrics.total}
               subtitle="All gym subscriptions"
-              icon="💳"
+              icon={<CreditCardIcon className="w-6 h-6" />}
               color="blue"
             />
             <AdminMetricCard
               title="Active Subscriptions"
               value={metrics.active}
               subtitle="Currently active"
-              icon="✅"
+              icon={<CheckCircleIcon className="w-6 h-6" />}
               color="green"
             />
             <AdminMetricCard
               title="Expiring Soon"
               value={metrics.expiring_soon}
               subtitle="Within 7 days"
-              icon="⚠️"
+              icon={<ExclamationTriangleIcon className="w-6 h-6" />}
               color="orange"
               trend={metrics.expiring_soon > 0 ? `${metrics.expiring_soon} need attention` : null}
               trendDirection={metrics.expiring_soon > 0 ? 'down' : 'neutral'}
@@ -445,7 +647,7 @@ const SubscriptionManagement = () => {
               title="Expired"
               value={metrics.expired}
               subtitle="Require renewal"
-              icon="❌"
+              icon={<XCircleIcon className="w-6 h-6" />}
               color="red"
             />
           </div>
@@ -522,6 +724,91 @@ const SubscriptionManagement = () => {
               </div>
             </div>
           )}
+        </section>
+
+        {/* Platform Subscription Plans */}
+        <section>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold text-gray-900">Platform Subscription Plans</h2>
+            <button
+              onClick={() => openPlanModal('createPlan')}
+              className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors"
+            >
+              Add Plan
+            </button>
+          </div>
+          <div className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm">
+            {plansLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-gray-200">
+                      <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Plan Name</th>
+                      <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Price</th>
+                      <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Billing Cycle</th>
+                      <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Recommended</th>
+                      <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Active</th>
+                      <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {plans.map((plan) => (
+                      <tr key={plan.id} className="border-b border-gray-100">
+                        <td className="py-3 px-4 text-sm text-gray-900">{plan.plan_name}</td>
+                        <td className="py-3 px-4 text-sm text-gray-900">₹{plan.price}</td>
+                        <td className="py-3 px-4 text-sm text-gray-900">{plan.billing_cycle}</td>
+                        <td className="py-3 px-4">
+                          {plan.recommended ? (
+                            <span className="px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">Yes</span>
+                          ) : (
+                            <span className="px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">No</span>
+                          )}
+                        </td>
+                        <td className="py-3 px-4">
+                          {plan.is_active ? (
+                            <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">Yes</span>
+                          ) : (
+                            <span className="px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">No</span>
+                          )}
+                        </td>
+                        <td className="py-3 px-4">
+                          <div className="flex gap-2">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openPlanModal('editPlan', plan);
+                              }}
+                              className="px-2 py-1 bg-blue-500 text-white rounded text-xs hover:bg-blue-600"
+                            >
+                              Edit
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openPlanModal('deletePlan', plan);
+                              }}
+                              className="px-2 py-1 bg-red-500 text-white rounded text-xs hover:bg-red-600"
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {plans.length === 0 && (
+                  <div className="text-center py-12 text-gray-500">
+                    No plans found. Add your first plan!
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </section>
       </div>
 

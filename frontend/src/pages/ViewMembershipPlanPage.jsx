@@ -1,6 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../services/api';
+import {
+  ArrowLeftIcon,
+  CreditCardIcon,
+  DocumentTextIcon,
+  ChartBarIcon,
+  ClockIcon,
+  ShieldCheckIcon
+} from '@heroicons/react/24/outline';
 
 export default function ViewMembershipPlanPage() {
   const { id } = useParams();
@@ -83,9 +91,9 @@ export default function ViewMembershipPlanPage() {
         </div>
         <button
           onClick={() => navigate('/membership-plans')}
-          className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-xl text-sm font-medium transition-colors"
+          className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-xl text-sm font-medium transition-colors flex items-center gap-2"
         >
-          ← Back to Plans
+          <ArrowLeftIcon className="w-4 h-4" /> Back to Plans
         </button>
       </div>
     );
@@ -110,9 +118,9 @@ export default function ViewMembershipPlanPage() {
           </button>
           <button
             onClick={() => navigate('/membership-plans')}
-            className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-xl text-sm font-medium transition-colors"
+            className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-xl text-sm font-medium transition-colors flex items-center gap-2"
           >
-            ← Back to Plans
+            <ArrowLeftIcon className="w-4 h-4" /> Back to Plans
           </button>
         </div>
       </div>
@@ -123,7 +131,7 @@ export default function ViewMembershipPlanPage() {
           {/* Plan Details */}
           <div className="bg-white border border-gray-200 p-6 rounded-2xl shadow-sm">
             <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-              <span>💳</span> Plan Information
+              <CreditCardIcon className="w-5 h-5 text-orange-500" /> Plan Information
             </h2>
             <div className="grid md:grid-cols-2 gap-6">
               <div className="space-y-4">
@@ -160,7 +168,7 @@ export default function ViewMembershipPlanPage() {
           {plan.description && (
             <div className="bg-white border border-gray-200 p-6 rounded-2xl shadow-sm">
               <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                <span>📝</span> Description
+                <DocumentTextIcon className="w-5 h-5 text-orange-500" /> Description
               </h2>
               <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">{plan.description}</p>
             </div>
@@ -172,7 +180,7 @@ export default function ViewMembershipPlanPage() {
           {/* Quick Stats */}
           <div className="bg-white border border-gray-200 p-6 rounded-2xl shadow-sm">
             <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-              <span>📊</span> Quick Stats
+              <ChartBarIcon className="w-5 h-5 text-orange-500" /> Quick Stats
             </h2>
             <div className="space-y-3">
               <div className="flex justify-between items-center">
@@ -199,7 +207,7 @@ export default function ViewMembershipPlanPage() {
           {/* Timestamps */}
           <div className="bg-white border border-gray-200 p-6 rounded-2xl shadow-sm">
             <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-              <span>🕐</span> Timestamps
+              <ClockIcon className="w-5 h-5 text-orange-500" /> Timestamps
             </h2>
             <div className="space-y-3">
               <div>
@@ -216,12 +224,10 @@ export default function ViewMembershipPlanPage() {
           {/* Plan Icon */}
           <div className="bg-white border border-gray-200 p-6 rounded-2xl shadow-sm">
             <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-              <span>🎯</span> Plan Icon
+              <ShieldCheckIcon className="w-5 h-5 text-orange-500" /> Plan Icon
             </h2>
-            <div className="w-32 h-32 bg-orange-100 border-2 border-orange-200 rounded-xl flex items-center justify-center mx-auto">
-              <span className="text-4xl font-bold text-orange-600">
-                💳
-              </span>
+            <div className="w-32 h-32 bg-orange-100 border-2 border-orange-200 rounded-xl flex items-center justify-center mx-auto text-orange-600">
+              <CreditCardIcon className="w-16 h-16" />
             </div>
             <p className="text-xs text-gray-500 text-center mt-2">Visual representation</p>
           </div>

@@ -169,7 +169,14 @@ const validateTokenUserMatch = (tokenClaims, userData) => {
   
   // Validate essential fields match between token and stored user data
   const roleMatches = tokenClaims.role === userData.role;
-  const gymIdMatches = tokenClaims.gym_id === userData.gym_id;
+  
+  // Skip gym_id validation for super admin
+  if (tokenClaims.role === 'super_admin' || userData.role === 'super_admin') {
+    return roleMatches;
+  }
+  
+  // For other roles, compare gym_id with String coercion to avoid type mismatches
+  const gymIdMatches = String(tokenClaims.gym_id) === String(userData.gym_id);
   
   return roleMatches && gymIdMatches;
 };

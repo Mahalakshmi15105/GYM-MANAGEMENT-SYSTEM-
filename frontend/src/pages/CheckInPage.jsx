@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
+import { ArrowLeftIcon } from '@heroicons/react/24/outline';
 
 export default function CheckInPage() {
   const navigate = useNavigate();
@@ -71,9 +72,9 @@ export default function CheckInPage() {
         </div>
         <button
           onClick={() => navigate('/attendance')}
-          className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-xl text-sm font-medium transition-colors self-start md:self-auto"
+          className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-xl text-sm font-medium transition-colors self-start md:self-auto flex items-center gap-2"
         >
-          ← Back to Attendance
+          <ArrowLeftIcon className="w-4 h-4" /> Back to Attendance
         </button>
       </div>
 

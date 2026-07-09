@@ -4,6 +4,7 @@ from sqlalchemy import or_
 from app.extensions import db
 from app.models import MembershipPlan
 from app.activity_logging import ActivityLogger
+from app.currency_utils import get_gym_currency
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
 
@@ -120,7 +121,8 @@ def create_membership_plan():
         
         return jsonify({
             'message': 'Membership plan created successfully',
-            'membership_plan': new_plan.to_dict()
+            'membership_plan': new_plan.to_dict(),
+            'currency': get_gym_currency(gym_id)
         }), 201
         
     except Exception as e:
@@ -142,7 +144,10 @@ def get_membership_plan(plan_id):
     # Log the view operation
     ActivityLogger.log_view('membership_plan', plan_id, entity_name=plan.plan_name, gym_id=gym_id)
     
-    return jsonify(plan.to_dict()), 200
+    return jsonify({
+        'membership_plan': plan.to_dict(),
+        'currency': get_gym_currency(gym_id)
+    }), 200
 
 @membership_plans_bp.route('/<int:plan_id>', methods=['PUT'])
 @jwt_required()
@@ -210,7 +215,8 @@ def update_membership_plan(plan_id):
         
         return jsonify({
             'message': 'Membership plan updated successfully',
-            'membership_plan': plan.to_dict()
+            'membership_plan': plan.to_dict(),
+            'currency': get_gym_currency(gym_id)
         }), 200
         
     except Exception as e:
@@ -280,5 +286,6 @@ def search_membership_plans():
     )
     
     return jsonify({
+        'currency': get_gym_currency(gym_id),
         'membership_plans': [plan.to_dict() for plan in plans]
     }), 200

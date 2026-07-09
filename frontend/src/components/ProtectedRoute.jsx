@@ -54,6 +54,15 @@ export const PermissionRoute = ({ children, permission }) => {
   );
 };
 
+// Member only route protection
+export const MemberRoute = ({ children }) => {
+  return (
+    <ProtectedRoute requiredRole="member">
+      {children}
+    </ProtectedRoute>
+  );
+};
+
 // Role-based component renderer
 export const RoleBasedComponent = ({ 
   children, 

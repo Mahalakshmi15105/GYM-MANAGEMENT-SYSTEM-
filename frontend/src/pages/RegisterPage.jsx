@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
+import { BoltIcon } from '@heroicons/react/24/outline';
 
 export default function RegisterPage() {
   const [gymName, setGymName] = useState('');
@@ -66,7 +67,7 @@ export default function RegisterPage() {
         {/* Brand */}
         <div className="text-center mb-8">
           <Link to="/" className="inline-flex items-center gap-2 text-3xl font-extrabold text-gray-900">
-            <span>🏋️‍♂️</span>
+            <BoltIcon className="w-10 h-10 text-orange-500" />
             <span className="text-orange-500">
               FlexiGym
             </span>

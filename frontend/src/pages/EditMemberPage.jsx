@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import api from '../services/api';
+import { ArrowLeftIcon } from '@heroicons/react/24/outline';
 
 export default function EditMemberPage() {
   const { id } = useParams();
@@ -15,6 +16,7 @@ export default function EditMemberPage() {
     date_of_birth: '',
     phone: '',
     email: '',
+    password: '', // For password updates
     address: '',
     emergency_contact_name: '',
     emergency_contact_phone: '',
@@ -58,14 +60,20 @@ export default function EditMemberPage() {
     e.preventDefault();
     
     // Validation
-    if (!formData.first_name || !formData.phone || !formData.membership_start_date || !formData.membership_end_date) {
+    if (!formData.first_name || !formData.phone || !formData.email || !formData.membership_start_date || !formData.membership_end_date) {
       setError('Please fill in all required fields.');
       return;
     }
 
     // Email validation
-    if (formData.email && !/\S+@\S+\.\S+/.test(formData.email)) {
+    if (!/\S+@\S+\.\S+/.test(formData.email)) {
       setError('Please enter a valid email address.');
+      return;
+    }
+
+    // Password validation (only if password is provided)
+    if (formData.password && formData.password.length < 6) {
+      setError('Password must be at least 6 characters long.');
       return;
     }
 
@@ -73,7 +81,13 @@ export default function EditMemberPage() {
     setError('');
 
     try {
-      await api.put(`/api/members/${id}`, formData);
+      // Only send password if it's been entered
+      const updateData = { ...formData };
+      if (!updateData.password) {
+        delete updateData.password;
+      }
+      
+      await api.put(`/api/members/${id}`, updateData);
       navigate(`/members/${id}`);
     } catch (err) {
       console.error(err);
@@ -101,9 +115,9 @@ export default function EditMemberPage() {
         </div>
         <button
           onClick={() => navigate('/members')}
-          className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-xl text-sm font-medium transition-colors"
+          className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-xl text-sm font-medium transition-colors flex items-center gap-2"
         >
-          ← Back to Members
+          <ArrowLeftIcon className="w-4 h-4" /> Back to Members
         </button>
       </div>
     );
@@ -215,11 +229,12 @@ export default function EditMemberPage() {
               </div>
               <div>
                 <label className="block text-xs font-semibold uppercase tracking-wider text-gray-600 mb-2">
-                  Email Address
+                  Email Address *
                 </label>
                 <input
                   type="email"
                   name="email"
+                  required
                   value={formData.email}
                   onChange={handleInputChange}
                   className="w-full bg-gray-50 border border-gray-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 rounded-xl px-4 py-3 text-sm text-gray-900 focus:outline-none transition-all duration-200"
@@ -237,6 +252,44 @@ export default function EditMemberPage() {
                 rows="3"
                 className="w-full bg-gray-50 border border-gray-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 rounded-xl px-4 py-3 text-sm text-gray-900 focus:outline-none transition-all duration-200 resize-none"
               />
+            </div>
+          </div>
+
+          {/* Account Password Update */}
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Account Password</h3>
+            <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-4">
+              <p className="text-sm text-blue-800">
+                <strong>Password Update:</strong> Leave blank to keep current password. Enter new password to update member's login credentials.
+              </p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-gray-600 mb-2">
+                  New Password (Optional)
+                </label>
+                <input
+                  type="password"
+                  name="password"
+                  value={formData.password}
+                  onChange={handleInputChange}
+                  placeholder="Enter new password (min 6 characters)"
+                  className="w-full bg-gray-50 border border-gray-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 rounded-xl px-4 py-3 text-sm text-gray-900 placeholder-gray-500 focus:outline-none transition-all duration-200"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Leave blank to keep current password unchanged
+                </p>
+              </div>
+              <div className="flex items-end">
+                <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 w-full">
+                  <p className="text-xs text-gray-600 mb-2">
+                    <strong>Current Login Email:</strong>
+                  </p>
+                  <p className="text-sm font-mono text-gray-800">
+                    {formData.email || 'No email set'}
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
 

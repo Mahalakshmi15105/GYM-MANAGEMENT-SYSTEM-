@@ -11,7 +11,15 @@ class Gym(db.Model):
     name = db.Column(db.String(100), nullable=False)
     address = db.Column(db.String(255), nullable=True)
     phone = db.Column(db.String(20), nullable=True)
+    status = db.Column(db.String(20), nullable=False, default='Active')
+    logo = db.Column(db.String(255), nullable=True)
+    currency = db.Column(db.String(3), nullable=True, default='INR')
+    language = db.Column(db.String(5), nullable=True, default='en')
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # Relationships
+    members = db.relationship('Member', backref='gym', lazy=True, cascade='all, delete-orphan')
+    users = db.relationship('User', backref='gym', lazy=True, cascade='all, delete-orphan')
 
     def to_dict(self):
         return {
@@ -19,8 +27,47 @@ class Gym(db.Model):
             'name': self.name,
             'address': self.address,
             'phone': self.phone,
+            'status': self.status,
+            'logo': self.logo,
+            'currency': self.currency or 'INR',
+            'language': self.language or 'en',
             'created_at': self.created_at.isoformat() if self.created_at else None
         }
+
+    def approve_gym(self, admin_user_id):
+        if self.status == 'Pending':
+            self.status = 'Active'
+            return True
+        return False
+
+    def suspend_gym(self, reason=None):
+        if self.status == 'Active':
+            self.status = 'Suspended'
+            return True
+        return False
+
+    def reactivate_gym(self):
+        if self.status == 'Suspended':
+            self.status = 'Active'
+            return True
+        return False
+
+    def soft_delete_gym(self):
+        if self.status not in ['Cancelled', 'Deleted']:
+            self.status = 'Deleted'
+            return True
+        return False
+
+    def get_member_count(self):
+        return Member.query.filter_by(gym_id=self.id).count()
+
+    def get_subscription_info(self):
+        # Return dummy or check super_admin_models if needed, but for now return None to avoid errors
+        try:
+            from app.super_admin_models import GymSubscription
+            return GymSubscription.query.filter_by(gym_id=self.id, status='Active').first()
+        except ImportError:
+            return None
 
 
 class User(db.Model):
@@ -57,6 +104,8 @@ class Member(db.Model):
     date_of_birth = db.Column(db.Date, nullable=True)
     phone = db.Column(db.String(20), nullable=False)
     email = db.Column(db.String(120), nullable=False)
+    password_hash = db.Column(db.String(255), nullable=True)  # Added for member account creation
+    password_changed = db.Column(db.Boolean, default=False, nullable=False)  # Track if password was changed from initial
     address = db.Column(db.Text, nullable=True)
     emergency_contact_name = db.Column(db.String(100), nullable=True)
     emergency_contact_phone = db.Column(db.String(20), nullable=True)
@@ -80,6 +129,7 @@ class Member(db.Model):
             'date_of_birth': self.date_of_birth.isoformat() if self.date_of_birth else None,
             'phone': self.phone,
             'email': self.email,
+            # password_hash is intentionally excluded for security
             'address': self.address,
             'emergency_contact_name': self.emergency_contact_name,
             'emergency_contact_phone': self.emergency_contact_phone,
@@ -89,6 +139,8 @@ class Member(db.Model):
             'membership_end_date': self.membership_end_date.isoformat() if self.membership_end_date else None,
             'status': self.status,
             'photo': self.photo,
+            'has_account': bool(self.password_hash and self.password_hash.strip()),  # Indicates if member has login account
+            'password_changed': self.password_changed,  # Include password_changed field
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None
         }

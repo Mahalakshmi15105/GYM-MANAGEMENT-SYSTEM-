@@ -1,33 +1,61 @@
-import React from 'react';
-import { NavLink } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { NavLink } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import GymLogo from "./GymLogo";
+import {
+  HomeIcon,
+  GlobeAltIcon,
+  BuildingOffice2Icon,
+  CreditCardIcon,
+  UserIcon,
+  Cog6ToothIcon,
+  NumberedListIcon,
+  UsersIcon,
+  CalendarIcon,
+  HeartIcon,
+  ChartBarIcon,
+  ArrowRightOnRectangleIcon,
+  XMarkIcon,
+  ShieldCheckIcon,
+} from "@heroicons/react/24/outline";
 
 export default function Sidebar({ isOpen, setIsOpen }) {
   const { user, logout, isSuperAdmin, canAccessGymManagement } = useAuth();
 
   // Base navigation links available to all users
-  const baseLinks = [
-    { name: 'Dashboard', path: '/dashboard', icon: '📊' }
-  ];
+  const baseLinks = [{ name: "Dashboard", path: "/dashboard", icon: HomeIcon }];
 
   // Super Admin specific navigation links
   const superAdminLinks = [
-    { name: 'Platform Dashboard', path: '/admin/dashboard', icon: '🌐' },
-    { name: 'Gym Management', path: '/admin/gyms', icon: '🏢' },
-    { name: 'Subscriptions', path: '/admin/subscriptions', icon: '💳' },
-    { name: 'User Management', path: '/admin/users', icon: '👤' },
-    { name: 'System Settings', path: '/admin/settings', icon: '⚙️' },
-    { name: 'Activity Logs', path: '/admin/logs', icon: '📋' }
+    {
+      name: "Platform Dashboard",
+      path: "/admin/dashboard",
+      icon: GlobeAltIcon,
+    },
+    { name: "Gym Management", path: "/admin/gyms", icon: BuildingOffice2Icon },
+    {
+      name: "Subscriptions",
+      path: "/admin/subscriptions",
+      icon: CreditCardIcon,
+    },
+    { name: "User Management", path: "/admin/users", icon: UserIcon },
+    { name: "System Settings", path: "/admin/settings", icon: Cog6ToothIcon },
+    { name: "Activity Logs", path: "/admin/logs", icon: NumberedListIcon },
   ];
 
   // Gym management links for gym owners and super admins
   const gymManagementLinks = [
-    { name: 'Members', path: '/members', icon: '👥' },
-    { name: 'Membership Plans', path: '/membership-plans', icon: '💳' },
-    { name: 'Payments', path: '/payments', icon: '💰' },
-    { name: 'Attendance', path: '/attendance', icon: '📅' },
-    { name: 'Trainers & Plans', path: '/plans', icon: '💪' },
-    { name: 'Settings', path: '/settings', icon: '⚙️' }
+    { name: "Members", path: "/members", icon: UsersIcon },
+    {
+      name: "Membership Plans",
+      path: "/membership-plans",
+      icon: CreditCardIcon,
+    },
+    { name: "Payments", path: "/payments", icon: CreditCardIcon },
+    { name: "Attendance", path: "/attendance", icon: CalendarIcon },
+    { name: "Reports", path: "/reports", icon: ChartBarIcon },
+    { name: "Trainers & Plans", path: "/plans", icon: HeartIcon },
+    { name: "Gym Profile", path: "/gym-profile", icon: BuildingOffice2Icon },
+    { name: "Settings", path: "/settings", icon: Cog6ToothIcon },
   ];
 
   // Build navigation links based on user role
@@ -36,12 +64,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
 
     // Add Super Admin links first if user is super admin
     if (isSuperAdmin) {
-      links = [
-        ...links,
-        ...superAdminLinks,
-        { divider: true, label: 'Gym Management' }, // Section divider
-        ...gymManagementLinks
-      ];
+      links = [...links, ...superAdminLinks];
     } else if (canAccessGymManagement) {
       // Add gym management links for gym owners
       links = [...links, ...gymManagementLinks];
@@ -65,22 +88,44 @@ export default function Sidebar({ isOpen, setIsOpen }) {
       <aside
         role="complementary"
         className={`w-64 bg-white border-r border-gray-200 flex flex-col h-screen fixed left-0 top-0 text-gray-800 z-50 transition-transform duration-300 shadow-lg ${
-          isOpen ? 'translate-x-0' : '-translate-x-full'
+          isOpen ? "translate-x-0" : "-translate-x-full"
         } lg:translate-x-0`}
       >
         {/* Brand logo & mobile close */}
         <div className="p-6 border-b border-gray-200 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <span className="text-2xl">🏋️‍♂️</span>
-            <span className="text-xl font-bold text-orange-500">
-              FlexiGym
-            </span>
+          <div className="flex items-center gap-3">
+            {user ? (
+              <>
+                {!isSuperAdmin ? (
+                  <GymLogo className="w-8 h-8" />
+                ) : (
+                  <ShieldCheckIcon className="w-8 h-8 text-red-600" />
+                )}
+                <div className="flex flex-col">
+                  <span className="text-lg font-bold text-orange-500">
+                    FlexiGym
+                  </span>
+                  <span className="text-xs text-gray-600 font-medium">
+                    {isSuperAdmin
+                      ? "Platform Administration"
+                      : user.gym_name || `Gym #${user.gym_id}`}
+                  </span>
+                </div>
+              </>
+            ) : (
+              <>
+                <HeartIcon className="w-8 h-8 text-orange-600" />
+                <span className="text-xl font-bold text-orange-500">
+                  FlexiGym
+                </span>
+              </>
+            )}
           </div>
           <button
             onClick={() => setIsOpen(false)}
             className="lg:hidden text-gray-400 hover:text-gray-600 p-1 focus:outline-none text-lg"
           >
-            ✕
+            <XMarkIcon className="w-5 h-5" />
           </button>
         </div>
 
@@ -100,6 +145,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
             }
 
             // Regular navigation links
+            const Icon = link.icon;
             return (
               <NavLink
                 key={link.name}
@@ -108,12 +154,12 @@ export default function Sidebar({ isOpen, setIsOpen }) {
                 className={({ isActive }) =>
                   `flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${
                     isActive
-                      ? 'bg-orange-500 text-white shadow-md'
-                      : 'hover:bg-orange-50 hover:text-orange-600'
+                      ? "bg-orange-500 text-white shadow-md"
+                      : "hover:bg-orange-50 hover:text-orange-600"
                   }`
                 }
               >
-                <span className="text-lg">{link.icon}</span>
+                <Icon className="w-5 h-5" />
                 <span>{link.name}</span>
               </NavLink>
             );
@@ -123,18 +169,22 @@ export default function Sidebar({ isOpen, setIsOpen }) {
         {/* Logged in User Profile area */}
         <div className="p-4 border-t border-gray-200 bg-gray-50">
           <div className="flex items-center gap-3 mb-4">
-            <div className={`w-10 h-10 rounded-xl border flex items-center justify-center font-bold uppercase ${
-              isSuperAdmin 
-                ? 'bg-red-100 border-red-200 text-red-600' 
-                : 'bg-orange-100 border-orange-200 text-orange-600'
-            }`}>
-              {user?.name?.charAt(0) || 'U'}
+            <div
+              className={`w-10 h-10 rounded-xl border flex items-center justify-center font-bold uppercase ${
+                isSuperAdmin
+                  ? "bg-red-100 border-red-200 text-red-600"
+                  : "bg-orange-100 border-orange-200 text-orange-600"
+              }`}
+            >
+              {user?.name?.charAt(0) || "U"}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-gray-900 truncate">{user?.name}</p>
+              <p className="text-sm font-semibold text-gray-900 truncate">
+                {user?.name}
+              </p>
               <div className="flex items-center gap-1">
                 <p className="text-xs text-gray-600 truncate capitalize">
-                  {user?.role?.replace('_', ' ')}
+                  {user?.role?.replace("_", " ")}
                 </p>
                 {isSuperAdmin && (
                   <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800 border border-red-200">
@@ -148,7 +198,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
             onClick={logout}
             className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold bg-gray-200 hover:bg-red-50 hover:text-red-600 border border-gray-200 hover:border-red-200 transition-all duration-200"
           >
-            <span>🚪</span> Log Out
+            <ArrowRightOnRectangleIcon className="w-4 h-4" /> Log Out
           </button>
         </div>
       </aside>

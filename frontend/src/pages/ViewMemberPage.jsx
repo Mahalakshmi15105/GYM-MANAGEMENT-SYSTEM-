@@ -1,6 +1,16 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../services/api';
+import {
+  ArrowLeftIcon,
+  UserIcon,
+  ExclamationTriangleIcon,
+  HeartIcon,
+  ChartBarIcon,
+  CreditCardIcon,
+  CameraIcon,
+  KeyIcon
+} from '@heroicons/react/24/outline';
 
 export default function ViewMemberPage() {
   const { id } = useParams();
@@ -65,9 +75,9 @@ export default function ViewMemberPage() {
         </div>
         <button
           onClick={() => navigate('/members')}
-          className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-xl text-sm font-medium transition-colors"
+          className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-xl text-sm font-medium transition-colors flex items-center gap-2"
         >
-          ← Back to Members
+          <ArrowLeftIcon className="w-4 h-4" /> Back to Members
         </button>
       </div>
     );
@@ -92,9 +102,9 @@ export default function ViewMemberPage() {
           </button>
           <button
             onClick={() => navigate('/members')}
-            className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-xl text-sm font-medium transition-colors"
+            className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-xl text-sm font-medium transition-colors flex items-center gap-2"
           >
-            ← Back to Members
+            <ArrowLeftIcon className="w-4 h-4" /> Back to Members
           </button>
         </div>
       </div>
@@ -105,7 +115,7 @@ export default function ViewMemberPage() {
           {/* Personal Details */}
           <div className="bg-white border border-gray-200 p-6 rounded-2xl shadow-sm">
             <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-              <span>👤</span> Personal Information
+              <UserIcon className="w-5 h-5 text-orange-500" /> Personal Information
             </h2>
             <div className="grid md:grid-cols-2 gap-4">
               <div className="space-y-3">
@@ -148,7 +158,7 @@ export default function ViewMemberPage() {
           {/* Emergency Contact */}
           <div className="bg-white border border-gray-200 p-6 rounded-2xl shadow-sm">
             <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-              <span>🚨</span> Emergency Contact
+              <ExclamationTriangleIcon className="w-5 h-5 text-orange-500" /> Emergency Contact
             </h2>
             <div className="grid md:grid-cols-2 gap-4">
               <div>
@@ -166,7 +176,7 @@ export default function ViewMemberPage() {
           {member.medical_notes && (
             <div className="bg-white border border-gray-200 p-6 rounded-2xl shadow-sm">
               <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                <span>🏥</span> Medical Notes
+                <HeartIcon className="w-5 h-5 text-orange-500" /> Medical Notes
               </h2>
               <p className="text-gray-700 leading-relaxed">{member.medical_notes}</p>
             </div>
@@ -178,7 +188,7 @@ export default function ViewMemberPage() {
           {/* Status */}
           <div className="bg-white border border-gray-200 p-6 rounded-2xl shadow-sm">
             <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-              <span>📊</span> Status
+              <ChartBarIcon className="w-5 h-5 text-orange-500" /> Status
             </h2>
             <div className="space-y-3">
               <div>
@@ -187,6 +197,20 @@ export default function ViewMemberPage() {
                   <span className={`inline-flex px-3 py-1 rounded-full text-xs font-semibold border ${getStatusColor(member.status)}`}>
                     {member.status}
                   </span>
+                </div>
+              </div>
+              <div>
+                <label className="text-xs uppercase font-semibold tracking-wider text-gray-600">Account Access</label>
+                <div className="mt-1">
+                  {member.has_account ? (
+                    <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold border bg-green-50 text-green-700 border-green-200">
+                      <KeyIcon className="w-3 h-3" /> Has Login Account
+                    </span>
+                  ) : (
+                    <span className="inline-flex px-3 py-1 rounded-full text-xs font-semibold border bg-gray-50 text-gray-600 border-gray-200">
+                      No Account
+                    </span>
+                  )}
                 </div>
               </div>
               <div>
@@ -199,7 +223,7 @@ export default function ViewMemberPage() {
           {/* Membership Details */}
           <div className="bg-white border border-gray-200 p-6 rounded-2xl shadow-sm">
             <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-              <span>💳</span> Membership
+              <CreditCardIcon className="w-5 h-5 text-orange-500" /> Membership
             </h2>
             <div className="space-y-3">
               <div>
@@ -220,7 +244,7 @@ export default function ViewMemberPage() {
           {/* Profile Photo Placeholder */}
           <div className="bg-white border border-gray-200 p-6 rounded-2xl shadow-sm">
             <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-              <span>📷</span> Profile Photo
+              <CameraIcon className="w-5 h-5 text-orange-500" /> Profile Photo
             </h2>
             <div className="w-32 h-32 bg-orange-100 border-2 border-orange-200 rounded-xl flex items-center justify-center mx-auto">
               <span className="text-3xl font-bold text-orange-600">

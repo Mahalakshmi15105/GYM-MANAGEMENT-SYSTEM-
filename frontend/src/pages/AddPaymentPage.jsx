@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
+import { ArrowLeftIcon } from '@heroicons/react/24/outline';
 
 export default function AddPaymentPage() {
   const navigate = useNavigate();
@@ -125,9 +126,9 @@ export default function AddPaymentPage() {
         </div>
         <button
           onClick={() => navigate('/payments')}
-          className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-xl text-sm font-medium transition-colors self-start md:self-auto"
+          className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-xl text-sm font-medium transition-colors self-start md:self-auto flex items-center gap-2"
         >
-          ← Back to Payments
+          <ArrowLeftIcon className="w-4 h-4" /> Back to Payments
         </button>
       </div>
 
@@ -200,7 +201,7 @@ export default function AddPaymentPage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label className="block text-xs font-semibold uppercase tracking-wider text-gray-600 mb-2">
-                  Payment Amount (USD) *
+                  Payment Amount *
                 </label>
                 <input
                   type="number"

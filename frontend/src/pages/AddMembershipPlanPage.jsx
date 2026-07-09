@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
+import { ArrowLeftIcon } from '@heroicons/react/24/outline';
 
 export default function AddMembershipPlanPage() {
   const navigate = useNavigate();
@@ -72,9 +73,9 @@ export default function AddMembershipPlanPage() {
         </div>
         <button
           onClick={() => navigate('/membership-plans')}
-          className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-xl text-sm font-medium transition-colors self-start md:self-auto"
+          className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-xl text-sm font-medium transition-colors self-start md:self-auto flex items-center gap-2"
         >
-          ← Back to Plans
+          <ArrowLeftIcon className="w-4 h-4" /> Back to Plans
         </button>
       </div>
 
@@ -157,7 +158,7 @@ export default function AddMembershipPlanPage() {
               </div>
               <div>
                 <label className="block text-xs font-semibold uppercase tracking-wider text-gray-600 mb-2">
-                  Price (USD) *
+                  Price *
                 </label>
                 <input
                   type="number"

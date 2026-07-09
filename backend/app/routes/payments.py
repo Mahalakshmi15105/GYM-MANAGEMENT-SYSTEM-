@@ -4,6 +4,7 @@ from sqlalchemy import or_, desc
 from app.extensions import db
 from app.models import Payment, Member, MembershipPlan
 from app.activity_logging import ActivityLogger
+from app.currency_utils import get_gym_currency
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
 import uuid
@@ -76,6 +77,7 @@ def list_payments():
     ActivityLogger.log_view('payment', view_type='list', gym_id=gym_id)
     
     return jsonify({
+        'currency': get_gym_currency(gym_id),
         'payments': [payment.to_dict() for payment in payments]
     }), 200
 
@@ -175,7 +177,8 @@ def create_payment():
         
         return jsonify({
             'message': 'Payment recorded successfully',
-            'payment': new_payment.to_dict()
+            'payment': new_payment.to_dict(),
+            'currency': get_gym_currency(gym_id)
         }), 201
         
     except Exception as e:
@@ -198,7 +201,10 @@ def get_payment(payment_id):
     member_name = f"{payment.member.first_name} {payment.member.last_name}".strip() if payment.member else "Unknown Member"
     ActivityLogger.log_view('payment', payment_id, entity_name=f"Payment for {member_name}", gym_id=gym_id)
     
-    return jsonify(payment.to_dict()), 200
+    return jsonify({
+        'payment': payment.to_dict(),
+        'currency': get_gym_currency(gym_id)
+    }), 200
 
 @payments_bp.route('/<int:payment_id>', methods=['PUT'])
 @jwt_required()
@@ -283,7 +289,8 @@ def update_payment(payment_id):
         
         return jsonify({
             'message': 'Payment updated successfully',
-            'payment': payment.to_dict()
+            'payment': payment.to_dict(),
+            'currency': get_gym_currency(gym_id)
         }), 200
         
     except Exception as e:
@@ -361,6 +368,7 @@ def search_payments():
     )
     
     return jsonify({
+        'currency': get_gym_currency(gym_id),
         'payments': [payment.to_dict() for payment in payments]
     }), 200
 
@@ -375,6 +383,7 @@ def get_members_for_payment():
     members = Member.query.filter_by(gym_id=gym_id, status='Active').order_by(Member.first_name.asc()).all()
     
     return jsonify({
+        'currency': get_gym_currency(gym_id),
         'members': [{
             'id': member.id,
             'name': f"{member.first_name} {member.last_name}",
@@ -394,6 +403,7 @@ def get_membership_plans_for_payment():
     plans = MembershipPlan.query.filter_by(gym_id=gym_id, status='Active').order_by(MembershipPlan.plan_name.asc()).all()
     
     return jsonify({
+        'currency': get_gym_currency(gym_id),
         'membership_plans': [{
             'id': plan.id,
             'plan_name': plan.plan_name,
@@ -418,6 +428,7 @@ def generate_receipt(payment_id):
         'receipt_number': f"RCP{payment.id:06d}",
         'payment': payment.to_dict(),
         'gym_name': payment.gym.name if payment.gym else 'FlexiGym',
+        'currency': get_gym_currency(gym_id),
         'generated_at': datetime.utcnow().isoformat()
     }
     

@@ -1,6 +1,17 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../services/api';
+import {
+  UserIcon,
+  ClockIcon,
+  ShieldCheckIcon,
+  ArrowLeftIcon,
+  CheckIcon,
+  CheckCircleIcon,
+  BoltIcon,
+  DocumentTextIcon,
+  ChartBarIcon
+} from '@heroicons/react/24/outline';
 
 export default function ViewAttendancePage() {
   const { id } = useParams();
@@ -94,9 +105,9 @@ export default function ViewAttendancePage() {
         </div>
         <button
           onClick={() => navigate('/attendance')}
-          className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-xl text-sm font-medium transition-colors"
+          className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-xl text-sm font-medium transition-colors flex items-center gap-2"
         >
-          ← Back to Attendance
+          <ArrowLeftIcon className="w-4 h-4" /> Back to Attendance
         </button>
       </div>
     );
@@ -118,9 +129,9 @@ export default function ViewAttendancePage() {
           {attendance.status === 'Checked In' && (
             <button
               onClick={handleCheckout}
-              className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-xl text-sm font-medium transition-colors"
+              className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-xl text-sm font-medium transition-colors flex items-center gap-2"
             >
-              ✓ Check Out
+              <CheckIcon className="w-4 h-4 mr-2" /> Check Out
             </button>
           )}
           <button
@@ -131,9 +142,9 @@ export default function ViewAttendancePage() {
           </button>
           <button
             onClick={() => navigate('/attendance')}
-            className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-xl text-sm font-medium transition-colors"
+            className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-xl text-sm font-medium transition-colors flex items-center gap-2"
           >
-            ← Back to Attendance
+            <ArrowLeftIcon className="w-4 h-4" /> Back to Attendance
           </button>
         </div>
       </div>
@@ -144,7 +155,7 @@ export default function ViewAttendancePage() {
           {/* Member & Attendance Details */}
           <div className="bg-white border border-gray-200 p-6 rounded-2xl shadow-sm">
             <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-              <span>👤</span> Member & Attendance Information
+              <UserIcon className="w-5 h-5 text-orange-500" /> Member & Attendance Information
             </h2>
             <div className="grid md:grid-cols-2 gap-6">
               <div className="space-y-4">
@@ -181,7 +192,7 @@ export default function ViewAttendancePage() {
           {/* Time Details */}
           <div className="bg-white border border-gray-200 p-6 rounded-2xl shadow-sm">
             <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-              <span>🕐</span> Time Details
+              <ClockIcon className="w-5 h-5 text-orange-500" /> Time Details
             </h2>
             <div className="grid md:grid-cols-2 gap-6">
               <div className="space-y-4">
@@ -203,7 +214,7 @@ export default function ViewAttendancePage() {
           {attendance.notes && (
             <div className="bg-white border border-gray-200 p-6 rounded-2xl shadow-sm">
               <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                <span>📝</span> Notes
+                <DocumentTextIcon className="w-5 h-5 text-orange-500" /> Notes
               </h2>
               <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">{attendance.notes}</p>
             </div>
@@ -215,7 +226,7 @@ export default function ViewAttendancePage() {
           {/* Quick Stats */}
           <div className="bg-white border border-gray-200 p-6 rounded-2xl shadow-sm">
             <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-              <span>📊</span> Quick Stats
+              <ChartBarIcon className="w-5 h-5 text-orange-500" /> Quick Stats
             </h2>
             <div className="space-y-3">
               <div className="flex justify-between items-center">
@@ -245,7 +256,7 @@ export default function ViewAttendancePage() {
           {/* Timestamps */}
           <div className="bg-white border border-gray-200 p-6 rounded-2xl shadow-sm">
             <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-              <span>🕒</span> Record Timestamps
+              <ClockIcon className="w-5 h-5 text-orange-500" /> Record Timestamps
             </h2>
             <div className="space-y-3">
               <div>
@@ -262,12 +273,14 @@ export default function ViewAttendancePage() {
           {/* Status Icon */}
           <div className="bg-white border border-gray-200 p-6 rounded-2xl shadow-sm">
             <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-              <span>🎯</span> Status Icon
+              <ShieldCheckIcon className="w-5 h-5 text-orange-500" /> Status Icon
             </h2>
             <div className="w-32 h-32 bg-orange-100 border-2 border-orange-200 rounded-xl flex items-center justify-center mx-auto">
-              <span className="text-4xl">
-                {attendance.status === 'Checked In' ? '🏃‍♂️' : '✅'}
-              </span>
+              {attendance.status === 'Checked In' ? (
+                <BoltIcon className="w-16 h-16 text-orange-600" />
+              ) : (
+                <CheckCircleIcon className="w-16 h-16 text-green-600" />
+              )}
             </div>
             <p className="text-xs text-gray-500 text-center mt-2">
               {attendance.status === 'Checked In' ? 'Currently Working Out' : 'Workout Complete'}

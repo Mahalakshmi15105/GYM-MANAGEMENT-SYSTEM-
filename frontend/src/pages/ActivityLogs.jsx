@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { AdminDataTable, AdminMetricCard } from '../components/admin';
 import api from '../services/api';
+import { ChartBarIcon, ArrowTrendingUpIcon, ExclamationTriangleIcon, UserIcon } from '@heroicons/react/24/outline';
 
 const ActivityLogs = () => {
   const [logs, setLogs] = useState([]);
@@ -55,7 +56,7 @@ const ActivityLogs = () => {
           title="Total Actions"
           value={logs.length}
           trend={5.2}
-          icon="📊"
+          icon={<ChartBarIcon className="w-6 h-6" />}
         />
         <AdminMetricCard
           title="Today's Activity"
@@ -63,7 +64,7 @@ const ActivityLogs = () => {
             new Date(log.timestamp).toDateString() === new Date().toDateString()
           ).length}
           trend={12.1}
-          icon="📈"
+          icon={<ArrowTrendingUpIcon className="w-6 h-6" />}
         />
         <AdminMetricCard
           title="Critical Events"
@@ -71,13 +72,13 @@ const ActivityLogs = () => {
             log.action.includes('delete') || log.action.includes('suspend')
           ).length}
           trend={-2.4}
-          icon="⚠️"
+          icon={<ExclamationTriangleIcon className="w-6 h-6" />}
         />
         <AdminMetricCard
           title="User Actions"
           value={logs.filter(log => log.user_id).length}
           trend={8.7}
-          icon="👤"
+          icon={<UserIcon className="w-6 h-6" />}
         />
       </div>
 

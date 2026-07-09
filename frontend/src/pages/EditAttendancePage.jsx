@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../services/api';
+import { ArrowLeftIcon } from '@heroicons/react/24/outline';
 
 export default function EditAttendancePage() {
   const { id } = useParams();
@@ -118,9 +119,9 @@ export default function EditAttendancePage() {
         </div>
         <button
           onClick={() => navigate('/attendance')}
-          className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-xl text-sm font-medium transition-colors"
+          className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-xl text-sm font-medium transition-colors flex items-center gap-2"
         >
-          ← Back to Attendance
+          <ArrowLeftIcon className="w-4 h-4" /> Back to Attendance
         </button>
       </div>
     );

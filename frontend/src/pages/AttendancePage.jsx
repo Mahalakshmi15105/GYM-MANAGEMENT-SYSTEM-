@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
+import { ChartBarIcon, PlusIcon } from '@heroicons/react/24/outline';
 
 export default function AttendancePage() {
     const { user } = useAuth();
@@ -145,15 +146,15 @@ export default function AttendancePage() {
                 <div className="flex gap-3">
                     <Link
                         to="/attendance/reports"
-                        className="bg-green-600 hover:bg-green-700 text-white font-medium px-4 py-2 rounded-xl transition-all duration-200 text-sm shadow-sm"
+                        className="bg-green-600 hover:bg-green-700 text-white font-medium px-4 py-2 rounded-xl transition-all duration-200 text-sm shadow-sm flex items-center gap-2"
                     >
-                        📊 Reports
+                        <ChartBarIcon className="w-4 h-4 mr-2" /> Reports
                     </Link>
                     <Link
                         to="/attendance/checkin"
-                        className="bg-orange-600 hover:bg-orange-700 text-white font-bold px-6 py-3 rounded-xl transition-all duration-200 self-start md:self-auto text-center shadow-sm"
+                        className="bg-orange-600 hover:bg-orange-700 text-white font-bold px-6 py-3 rounded-xl transition-all duration-200 self-start md:self-auto text-center shadow-sm flex items-center gap-2"
                     >
-                        + Check In
+                        <PlusIcon className="w-4 h-4 mr-2" /> Check In
                     </Link>
                 </div>
             </div>

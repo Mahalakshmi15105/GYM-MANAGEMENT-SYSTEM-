@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../services/api';
+import { ArrowLeftIcon } from '@heroicons/react/24/outline';
 
 export default function EditMembershipPlanPage() {
   const { id } = useParams();
@@ -106,9 +107,9 @@ export default function EditMembershipPlanPage() {
         </div>
         <button
           onClick={() => navigate('/membership-plans')}
-          className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-xl text-sm font-medium transition-colors"
+          className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-xl text-sm font-medium transition-colors flex items-center gap-2"
         >
-          ← Back to Plans
+          <ArrowLeftIcon className="w-4 h-4" /> Back to Plans
         </button>
       </div>
     );
@@ -211,7 +212,7 @@ export default function EditMembershipPlanPage() {
               </div>
               <div>
                 <label className="block text-xs font-semibold uppercase tracking-wider text-gray-600 mb-2">
-                  Price (USD) *
+                  Price *
                 </label>
                 <input
                   type="number"

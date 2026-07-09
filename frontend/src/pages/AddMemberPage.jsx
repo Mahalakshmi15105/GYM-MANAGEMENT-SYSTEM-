@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import api from '../services/api';
+import { ArrowLeftIcon } from '@heroicons/react/24/outline';
 
 export default function AddMemberPage() {
   const navigate = useNavigate();
@@ -13,6 +14,7 @@ export default function AddMemberPage() {
     date_of_birth: '',
     phone: '',
     email: '',
+    password: '',
     address: '',
     emergency_contact_name: '',
     emergency_contact_phone: '',
@@ -32,14 +34,20 @@ export default function AddMemberPage() {
     e.preventDefault();
     
     // Validation
-    if (!formData.first_name || !formData.phone || !formData.membership_start_date || !formData.membership_end_date) {
+    if (!formData.first_name || !formData.phone || !formData.email || !formData.password || !formData.membership_start_date || !formData.membership_end_date) {
       setError('Please fill in all required fields.');
       return;
     }
 
     // Email validation
-    if (formData.email && !/\S+@\S+\.\S+/.test(formData.email)) {
+    if (!/\S+@\S+\.\S+/.test(formData.email)) {
       setError('Please enter a valid email address.');
+      return;
+    }
+
+    // Password validation
+    if (formData.password.length < 6) {
+      setError('Password must be at least 6 characters long.');
       return;
     }
 
@@ -67,9 +75,9 @@ export default function AddMemberPage() {
         </div>
         <button
           onClick={() => navigate('/members')}
-          className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-xl text-sm font-medium transition-colors self-start md:self-auto"
+          className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-xl text-sm font-medium transition-colors self-start md:self-auto flex items-center gap-2"
         >
-          ← Back to Members
+          <ArrowLeftIcon className="w-4 h-4" /> Back to Members
         </button>
       </div>
 
@@ -161,11 +169,12 @@ export default function AddMemberPage() {
               </div>
               <div>
                 <label className="block text-xs font-semibold uppercase tracking-wider text-gray-600 mb-2">
-                  Email Address
+                  Email Address *
                 </label>
                 <input
                   type="email"
                   name="email"
+                  required
                   value={formData.email}
                   onChange={handleInputChange}
                   className="w-full bg-gray-50 border border-gray-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 rounded-xl px-4 py-3 text-sm text-gray-900 focus:outline-none transition-all duration-200"
@@ -183,6 +192,45 @@ export default function AddMemberPage() {
                 rows="3"
                 className="w-full bg-gray-50 border border-gray-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 rounded-xl px-4 py-3 text-sm text-gray-900 focus:outline-none transition-all duration-200 resize-none"
               />
+            </div>
+          </div>
+
+          {/* Account Credentials */}
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Account Credentials</h3>
+            <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 mb-4">
+              <p className="text-sm text-orange-800">
+                <strong>Member Account:</strong> The member will use their email and password to log into their account and access member features.
+              </p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-gray-600 mb-2">
+                  Login Password *
+                </label>
+                <input
+                  type="password"
+                  name="password"
+                  required
+                  value={formData.password}
+                  onChange={handleInputChange}
+                  placeholder="Minimum 6 characters"
+                  className="w-full bg-gray-50 border border-gray-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 rounded-xl px-4 py-3 text-sm text-gray-900 placeholder-gray-500 focus:outline-none transition-all duration-200"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Member will use this password to log into their account
+                </p>
+              </div>
+              <div className="flex items-end">
+                <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 w-full">
+                  <p className="text-xs text-gray-600 mb-2">
+                    <strong>Login Email:</strong>
+                  </p>
+                  <p className="text-sm font-mono text-gray-800">
+                    {formData.email || 'Enter email above'}
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -301,7 +349,7 @@ export default function AddMemberPage() {
               disabled={loading}
               className="bg-orange-600 hover:bg-orange-700 text-white font-bold py-3 px-6 rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? 'Adding Member...' : 'Add Member'}
+              {loading ? 'Creating Member Account...' : 'Create Member Account'}
             </button>
             <button
               type="button"

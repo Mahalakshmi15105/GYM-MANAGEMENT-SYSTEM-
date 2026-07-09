@@ -2,13 +2,28 @@ import React, { useState, useEffect } from 'react';
 import { AdminMetricCard, AdminChart, AdminDataTable } from '../components/admin';
 import MobileNavigation from '../components/admin/MobileNavigation';
 import { useResponsive } from '../hooks/useResponsive';
+import { useCurrency } from '../utils/currency';
 import api from '../services/api';
 import '../styles/responsive.css';
+import {
+  GlobeAltIcon,
+  ArrowPathIcon,
+  BuildingOfficeIcon,
+  UsersIcon,
+  CurrencyDollarIcon,
+  ClipboardDocumentListIcon,
+  ClockIcon,
+  NoSymbolIcon,
+  CheckCircleIcon,
+  UserIcon,
+  ExclamationTriangleIcon
+} from '@heroicons/react/24/outline';
 
 /**
  * Super Admin Dashboard with platform-wide analytics and metrics
  */
 const SuperAdminDashboard = () => {
+  const { formatCurrency, setCurrencyCode } = useCurrency();
   const [platformMetrics, setPlatformMetrics] = useState(null);
   const [growthMetrics, setGrowthMetrics] = useState(null);
   const { isMobile, isTablet } = useResponsive();
@@ -108,7 +123,7 @@ const SuperAdminDashboard = () => {
       <div className="min-h-screen bg-gray-50 p-6">
         <div className="max-w-7xl mx-auto">
           <div className="bg-red-50 border border-red-200 rounded-2xl p-8 text-center">
-            <div className="text-red-600 text-6xl mb-4">⚠️</div>
+            <ExclamationTriangleIcon className="w-16 h-16 text-red-600 mx-auto mb-4" />
             <h2 className="text-xl font-semibold text-red-900 mb-2">Dashboard Error</h2>
             <p className="text-red-700 mb-4">{error}</p>
             <button
@@ -130,8 +145,9 @@ const SuperAdminDashboard = () => {
         <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                🌐 Platform Dashboard
+              <h1 className="text-3xl font-bold text-gray-900 mb-2 flex items-center gap-2">
+                <GlobeAltIcon className="w-8 h-8" />
+                Platform Dashboard
               </h1>
               <p className="text-gray-600">
                 Real-time analytics and platform oversight for FlexiGym SaaS
@@ -148,7 +164,7 @@ const SuperAdminDashboard = () => {
                 disabled={loading}
                 className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 disabled:opacity-50 transition-colors flex items-center gap-2"
               >
-                <span className={loading ? 'animate-spin' : ''}>🔄</span>
+                <ArrowPathIcon className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
                 Refresh
               </button>
             </div>
@@ -164,7 +180,7 @@ const SuperAdminDashboard = () => {
                 title="Total Gyms"
                 value={platformMetrics.total_gyms}
                 subtitle={`${platformMetrics.active_gyms} active`}
-                icon="🏢"
+                icon={<BuildingOfficeIcon className="w-6 h-6" />}
                 trend={platformMetrics.new_gyms_7_days > 0 ? `+${platformMetrics.new_gyms_7_days} this week` : null}
                 trendDirection={platformMetrics.new_gyms_7_days > 0 ? 'up' : 'neutral'}
                 color="blue"
@@ -174,7 +190,7 @@ const SuperAdminDashboard = () => {
                 title="Platform Members"
                 value={platformMetrics.total_members}
                 subtitle={`${platformMetrics.active_members} active`}
-                icon="👥"
+                icon={<UsersIcon className="w-6 h-6" />}
                 trend={platformMetrics.new_members_7_days > 0 ? `+${platformMetrics.new_members_7_days} this week` : null}
                 trendDirection={platformMetrics.new_members_7_days > 0 ? 'up' : 'neutral'}
                 color="green"
@@ -182,9 +198,9 @@ const SuperAdminDashboard = () => {
               
               <AdminMetricCard
                 title="Monthly Revenue"
-                value={`$${platformMetrics.revenue_30_days.toLocaleString()}`}
+                value={formatCurrency(platformMetrics.revenue_30_days)}
                 subtitle="Last 30 days"
-                icon="💰"
+                icon={<CurrencyDollarIcon className="w-6 h-6" />}
                 color="orange"
               />
               
@@ -195,7 +211,7 @@ const SuperAdminDashboard = () => {
                   `${platformMetrics.expiring_subscriptions} expiring soon` : 
                   'All current'
                 }
-                icon="📋"
+                icon={<ClipboardDocumentListIcon className="w-6 h-6" />}
                 trend={platformMetrics.expiring_subscriptions > 0 ? 
                   `${platformMetrics.expiring_subscriptions} expiring` : null}
                 trendDirection={platformMetrics.expiring_subscriptions > 0 ? 'down' : 'neutral'}
@@ -214,7 +230,7 @@ const SuperAdminDashboard = () => {
                 title="Pending Approvals"
                 value={platformMetrics.pending_gyms}
                 subtitle="Gyms awaiting approval"
-                icon="⏳"
+                icon={<ClockIcon className="w-6 h-6" />}
                 trend={platformMetrics.pending_gyms > 5 ? 'High' : platformMetrics.pending_gyms > 0 ? 'Normal' : 'Clear'}
                 trendDirection={platformMetrics.pending_gyms > 5 ? 'down' : 'neutral'}
                 color={platformMetrics.pending_gyms > 5 ? 'red' : 'blue'}
@@ -224,7 +240,7 @@ const SuperAdminDashboard = () => {
                 title="Suspended Gyms"
                 value={platformMetrics.suspended_gyms}
                 subtitle="Currently suspended"
-                icon="🚫"
+                icon={<NoSymbolIcon className="w-6 h-6" />}
                 color="red"
               />
               
@@ -232,7 +248,7 @@ const SuperAdminDashboard = () => {
                 title="System Status"
                 value="Operational"
                 subtitle="All services running"
-                icon="✅"
+                icon={<CheckCircleIcon className="w-6 h-6" />}
                 color="green"
               />
             </div>
@@ -311,7 +327,7 @@ const SuperAdminDashboard = () => {
           <div className="bg-white rounded-2xl border border-gray-200 p-6">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <button className="flex items-center gap-3 p-4 border border-gray-200 rounded-xl hover:border-orange-300 hover:bg-orange-50 transition-colors">
-                <span className="text-2xl">🏢</span>
+                <BuildingOfficeIcon className="w-10 h-10 text-orange-600" />
                 <div className="text-left">
                   <div className="font-medium text-gray-900">Manage Gyms</div>
                   <div className="text-sm text-gray-600">Approve, suspend, or review gyms</div>
@@ -319,7 +335,7 @@ const SuperAdminDashboard = () => {
               </button>
               
               <button className="flex items-center gap-3 p-4 border border-gray-200 rounded-xl hover:border-orange-300 hover:bg-orange-50 transition-colors">
-                <span className="text-2xl">👤</span>
+                <UserIcon className="w-10 h-10 text-orange-600" />
                 <div className="text-left">
                   <div className="font-medium text-gray-900">User Management</div>
                   <div className="text-sm text-gray-600">View and manage all users</div>
@@ -327,7 +343,7 @@ const SuperAdminDashboard = () => {
               </button>
               
               <button className="flex items-center gap-3 p-4 border border-gray-200 rounded-xl hover:border-orange-300 hover:bg-orange-50 transition-colors">
-                <span className="text-2xl">📋</span>
+                <ClipboardDocumentListIcon className="w-10 h-10 text-orange-600" />
                 <div className="text-left">
                   <div className="font-medium text-gray-900">Activity Logs</div>
                   <div className="text-sm text-gray-600">Review platform activity</div>

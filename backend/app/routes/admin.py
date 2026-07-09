@@ -11,7 +11,7 @@ from app.auth_utils import super_admin_required, get_current_user_id
 from app.super_admin_errors import handle_super_admin_errors, SuperAdminError, validate_super_admin_operation
 from app.activity_logging import ActivityLogger
 from app.models import Gym, User, Member, Payment, Attendance
-from app.super_admin_models import ActivityLog, SystemSettings, GymSubscription
+from app.super_admin_models import ActivityLog, SystemSettings, GymSubscription, PlatformSubscriptionPlan
 
 admin_bp = Blueprint('admin', __name__)
 
@@ -538,8 +538,8 @@ class PlatformAnalyticsService:
                 ).count()
             }
         }
-#
- =============================================================================
+
+# =============================================================================
 # SUBSCRIPTION MANAGEMENT ENDPOINTS
 # =============================================================================
 
@@ -1001,6 +1001,233 @@ def get_subscription_analytics():
         return jsonify({'error': 'Failed to fetch subscription analytics', 'details': str(e)}), 500
 
 
+# =============================================================================
+# PLATFORM SUBSCRIPTION PLANS ENDPOINTS
+# =============================================================================
+
+@admin_bp.route('/subscription-plans', methods=['GET'])
+@super_admin_required
+def get_platform_subscription_plans():
+    """Get all platform subscription plans (super admin only)"""
+    try:
+        query = PlatformSubscriptionPlan.query.order_by(
+            PlatformSubscriptionPlan.recommended.desc(), 
+            PlatformSubscriptionPlan.price.asc()
+        )
+        plans = query.all()
+        
+        return jsonify({
+            'plans': [plan.to_dict() for plan in plans]
+        })
+        
+    except Exception as e:
+        return jsonify({'error': 'Failed to fetch platform plans', 'details': str(e)}), 500
+
+
+@admin_bp.route('/subscription-plans', methods=['POST'])
+@super_admin_required
+def create_platform_subscription_plan():
+    """Create a new platform subscription plan"""
+    try:
+        data = request.get_json() or {}
+        admin_user_id = get_current_user_id()
+        
+        # Required fields
+        required_fields = ['plan_name', 'price', 'billing_cycle']
+        for field in required_fields:
+            if not data.get(field):
+                return jsonify({'error': f'Missing required field: {field}'}), 400
+        
+        # Validate price
+        try:
+            price = float(data['price'])
+            if price <= 0:
+                return jsonify({'error': 'Price must be greater than 0'}), 400
+        except (ValueError, TypeError):
+            return jsonify({'error': 'Invalid price format'}), 400
+        
+        # Check for duplicate plan name
+        existing_plan = PlatformSubscriptionPlan.query.filter_by(
+            plan_name=data['plan_name']
+        ).first()
+        
+        if existing_plan:
+            return jsonify({'error': 'Plan with this name already exists'}), 400
+        
+        # Create new plan
+        new_plan = PlatformSubscriptionPlan(
+            plan_name=data['plan_name'],
+            price=price,
+            currency=data.get('currency', 'INR'),
+            billing_cycle=data['billing_cycle'],
+            description=data.get('description'),
+            features=data.get('features'),
+            recommended=data.get('recommended', False),
+            is_active=data.get('is_active', True)
+        )
+        
+        db.session.add(new_plan)
+        db.session.commit()
+        
+        # Log activity
+        log_activity(
+            user_id=admin_user_id,
+            action_type='create',
+            entity_type='platform_subscription_plan',
+            entity_id=new_plan.id,
+            description=f'Created new platform subscription plan: {new_plan.plan_name}'
+        )
+        
+        return jsonify({
+            'message': 'Platform subscription plan created successfully',
+            'plan': new_plan.to_dict()
+        }), 201
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': 'Failed to create platform plan', 'details': str(e)}), 500
+
+
+@admin_bp.route('/subscription-plans/<int:plan_id>', methods=['PUT'])
+@super_admin_required
+def update_platform_subscription_plan(plan_id):
+    """Update an existing platform subscription plan"""
+    try:
+        plan = PlatformSubscriptionPlan.query.get_or_404(plan_id)
+        data = request.get_json() or {}
+        admin_user_id = get_current_user_id()
+        
+        changes = []
+        
+        # Update allowed fields
+        if 'plan_name' in data:
+            if data['plan_name'] != plan.plan_name:
+                # Check for duplicate name
+                existing = PlatformSubscriptionPlan.query.filter(
+                    and_(
+                        PlatformSubscriptionPlan.plan_name == data['plan_name'],
+                        PlatformSubscriptionPlan.id != plan_id
+                    )
+                ).first()
+                if existing:
+                    return jsonify({'error': 'Plan with this name already exists'}), 400
+                changes.append(f'plan_name: {plan.plan_name} → {data["plan_name"]}')
+                plan.plan_name = data['plan_name']
+        
+        if 'price' in data:
+            try:
+                price = float(data['price'])
+                if price <=0:
+                    return jsonify({'error': 'Price must be greater than 0'}), 400
+                if price != plan.price:
+                    changes.append(f'price: {plan.price} → {price}')
+                    plan.price = price
+            except (ValueError, TypeError):
+                return jsonify({'error': 'Invalid price format'}), 400
+        
+        if 'currency' in data:
+            if data['currency'] != plan.currency:
+                changes.append(f'currency: {plan.currency} → {data["currency"]}')
+                plan.currency = data['currency']
+        
+        if 'billing_cycle' in data:
+            if data['billing_cycle'] != plan.billing_cycle:
+                changes.append(f'billing_cycle: {plan.billing_cycle} → {data["billing_cycle"]}')
+                plan.billing_cycle = data['billing_cycle']
+        
+        if 'description' in data:
+            if data['description'] != plan.description:
+                changes.append(f'description: {plan.description} → {data["description"]}')
+                plan.description = data['description']
+        
+        if 'features' in data:
+            if data['features'] != plan.features:
+                changes.append('features: updated')
+                plan.features = data['features']
+        
+        if 'recommended' in data:
+            if bool(data['recommended']) != plan.recommended:
+                changes.append(f'recommended: {plan.recommended} → {data["recommended"]}')
+                plan.recommended = bool(data['recommended'])
+        
+        if 'is_active' in data:
+            if bool(data['is_active']) != plan.is_active:
+                changes.append(f'is_active: {plan.is_active} → {data["is_active"]}')
+                plan.is_active = bool(data['is_active'])
+        
+        if not changes:
+            return jsonify({'message': 'No changes detected', 'plan': plan.to_dict()})
+        
+        db.session.commit()
+        
+        # Log activity
+        log_activity(
+            user_id=admin_user_id,
+            action_type='update',
+            entity_type='platform_subscription_plan',
+            entity_id=plan.id,
+            description=f'Updated platform subscription plan: {plan.plan_name} - {", ".join(changes)}'
+        )
+        
+        return jsonify({
+            'message': 'Platform subscription plan updated successfully',
+            'changes': changes,
+            'plan': plan.to_dict()
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': 'Failed to update platform plan', 'details': str(e)}), 500
+
+
+@admin_bp.route('/subscription-plans/<int:plan_id>', methods=['DELETE'])
+@super_admin_required
+def delete_platform_subscription_plan(plan_id):
+    """Delete a platform subscription plan"""
+    try:
+        plan = PlatformSubscriptionPlan.query.get_or_404(plan_id)
+        admin_user_id = get_current_user_id()
+        
+        db.session.delete(plan)
+        db.session.commit()
+        
+        # Log activity
+        log_activity(
+            user_id=admin_user_id,
+            action_type='delete',
+            entity_type='platform_subscription_plan',
+            entity_id=plan_id,
+            description=f'Deleted platform subscription plan: {plan.plan_name}',
+            severity='warning'
+        )
+        
+        return jsonify({
+            'message': 'Platform subscription plan deleted successfully'
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': 'Failed to delete platform plan', 'details': str(e)}), 500
+
+
+@admin_bp.route('/subscription-plans/active', methods=['GET'])
+def get_active_platform_subscription_plans():
+    """Get active platform subscription plans (public endpoint)"""
+    try:
+        query = PlatformSubscriptionPlan.query.filter_by(is_active=True).order_by(
+            PlatformSubscriptionPlan.recommended.desc(), 
+            PlatformSubscriptionPlan.price.asc()
+        )
+        plans = query.all()
+        
+        return jsonify({
+            'plans': [plan.to_dict() for plan in plans]
+        })
+        
+    except Exception as e:
+        return jsonify({'error': 'Failed to fetch active plans', 'details': str(e)}), 500
+
+
 @admin_bp.route('/subscriptions/plans', methods=['GET'])
 @super_admin_required
 def get_subscription_plans():
@@ -1076,24 +1303,6 @@ def get_subscription_plans():
         
     except Exception as e:
         return jsonify({'error': 'Failed to fetch subscription plans', 'details': str(e)}), 500
-
-# =============================================================================
-# SUBSCRIPTION MANAGEMENT ENDPOINTS
-# =============================================================================
-
-@admin_bp.route('/subscriptions', methods=['GET'])
-@super_admin_required
-def list_subscriptions():
-    """List all gym subscriptions with filtering and pagination"""
-    try:
-        # Query parameters
-        page = int(request.args.get('page', 1))
-        per_page = min(int(request.args.get('per_page', 20)), 100)
-        status_filter = request.args.get('status')
-        expiring_soon = request.args.get('expiring_soon') == 'true'
-        search_query = request.args.get('q', '').strip()
-        
-        # Base query
         query = GymSubscription.query.join(Gym)
         
         # Apply filters
@@ -1145,174 +1354,7 @@ def list_subscriptions():
         return jsonify({'error': 'Failed to fetch subscriptions', 'details': str(e)}), 500
 
 
-@admin_bp.route('/subscriptions/<int:subscription_id>', methods=['GET'])
-@super_admin_required
-def get_subscription_details(subscription_id):
-    """Get detailed subscription information"""
-    try:
-        subscription = GymSubscription.query.get_or_404(subscription_id)
-        
-        # Get payment history for this subscription (if we track it)
-        gym_id = subscription.gym_id
-        recent_payments = Payment.query.filter_by(gym_id=gym_id).order_by(
-            desc(Payment.payment_date)
-        ).limit(10).all()
-        
-        subscription_data = subscription.to_dict()
-        subscription_data.update({
-            'payment_history': [payment.to_dict() for payment in recent_payments],
-            'days_until_expiry': subscription.days_until_expiry(),
-            'is_active': subscription.is_active(),
-            'usage_limits': subscription.get_usage_limits()
-        })
-        
-        return jsonify(subscription_data)
-        
-    except Exception as e:
-        return jsonify({'error': 'Failed to fetch subscription details', 'details': str(e)}), 500
 
-
-@admin_bp.route('/subscriptions', methods=['POST'])
-@super_admin_required
-def create_subscription():
-    """Create a new gym subscription"""
-    try:
-        data = request.get_json()
-        admin_user_id = get_current_user_id()
-        
-        # Validate required fields
-        required_fields = ['gym_id', 'plan_name', 'monthly_price', 'billing_cycle_start', 'billing_cycle_end']
-        for field in required_fields:
-            if field not in data:
-                return jsonify({'error': f'Missing required field: {field}'}), 400
-        
-        # Check if gym exists and doesn't already have an active subscription
-        gym = Gym.query.get(data['gym_id'])
-        if not gym:
-            return jsonify({'error': 'Gym not found'}), 404
-            
-        existing_subscription = GymSubscription.query.filter_by(
-            gym_id=data['gym_id'], status='Active'
-        ).first()
-        if existing_subscription:
-            return jsonify({'error': 'Gym already has an active subscription'}), 400
-        
-        # Parse dates
-        billing_start = datetime.strptime(data['billing_cycle_start'], '%Y-%m-%d').date()
-        billing_end = datetime.strptime(data['billing_cycle_end'], '%Y-%m-%d').date()
-        next_billing = datetime.strptime(data.get('next_billing_date', data['billing_cycle_end']), '%Y-%m-%d').date()
-        
-        # Create subscription
-        subscription = GymSubscription(
-            gym_id=data['gym_id'],
-            plan_name=data['plan_name'],
-            monthly_price=data['monthly_price'],
-            max_members=data.get('max_members', 100),
-            max_trainers=data.get('max_trainers', 5),
-            features=data.get('features', {}),
-            billing_cycle_start=billing_start,
-            billing_cycle_end=billing_end,
-            next_billing_date=next_billing,
-            status=data.get('status', 'Active'),
-            auto_renew=data.get('auto_renew', True),
-            payment_method=data.get('payment_method'),
-            created_by=admin_user_id
-        )
-        
-        db.session.add(subscription)
-        
-        # Update gym's subscription_id
-        gym.subscription_id = subscription.id
-        
-        db.session.commit()
-        
-        # Log the action
-        log_activity(
-            user_id=admin_user_id,
-            gym_id=data['gym_id'],
-            action_type='create',
-            entity_type='subscription',
-            entity_id=subscription.id,
-            description=f'Created subscription for gym: {gym.name} - Plan: {subscription.plan_name}'
-        )
-        
-        return jsonify({
-            'message': 'Subscription created successfully',
-            'subscription': subscription.to_dict()
-        }), 201
-        
-    except ValueError as e:
-        return jsonify({'error': 'Invalid date format. Use YYYY-MM-DD', 'details': str(e)}), 400
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({'error': 'Failed to create subscription', 'details': str(e)}), 500
-
-
-@admin_bp.route('/subscriptions/<int:subscription_id>', methods=['PUT'])
-@super_admin_required
-def update_subscription(subscription_id):
-    """Update subscription details"""
-    try:
-        subscription = GymSubscription.query.get_or_404(subscription_id)
-        data = request.get_json()
-        admin_user_id = get_current_user_id()
-        
-        # Track changes for logging
-        changes = []
-        
-        # Update allowed fields
-        updateable_fields = [
-            'plan_name', 'monthly_price', 'max_members', 'max_trainers', 
-            'features', 'status', 'auto_renew', 'payment_method'
-        ]
-        
-        for field in updateable_fields:
-            if field in data and getattr(subscription, field) != data[field]:
-                old_value = getattr(subscription, field)
-                setattr(subscription, field, data[field])
-                changes.append(f'{field}: {old_value} → {data[field]}')
-        
-        # Handle date fields separately
-        date_fields = ['billing_cycle_start', 'billing_cycle_end', 'next_billing_date']
-        for field in date_fields:
-            if field in data:
-                new_date = datetime.strptime(data[field], '%Y-%m-%d').date()
-                if getattr(subscription, field) != new_date:
-                    old_value = getattr(subscription, field)
-                    setattr(subscription, field, new_date)
-                    changes.append(f'{field}: {old_value} → {new_date}')
-        
-        # Handle payment tracking
-        if 'last_payment_date' in data:
-            payment_date = datetime.strptime(data['last_payment_date'], '%Y-%m-%d').date()
-            subscription.last_payment_date = payment_date
-            subscription.last_payment_amount = data.get('last_payment_amount')
-            changes.append(f'payment updated: {payment_date}, amount: {data.get("last_payment_amount")}')
-        
-        db.session.commit()
-        
-        # Log changes if any
-        if changes:
-            log_activity(
-                user_id=admin_user_id,
-                gym_id=subscription.gym_id,
-                action_type='update',
-                entity_type='subscription',
-                entity_id=subscription_id,
-                description=f'Updated subscription: {", ".join(changes)}'
-            )
-        
-        return jsonify({
-            'message': 'Subscription updated successfully',
-            'subscription': subscription.to_dict(),
-            'changes': changes
-        })
-        
-    except ValueError as e:
-        return jsonify({'error': 'Invalid date format. Use YYYY-MM-DD', 'details': str(e)}), 400
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({'error': 'Failed to update subscription', 'details': str(e)}), 500
 
 
 @admin_bp.route('/subscriptions/<int:subscription_id>/suspend', methods=['PUT'])
@@ -1444,142 +1486,9 @@ def cancel_subscription(subscription_id):
         return jsonify({'error': 'Failed to cancel subscription', 'details': str(e)}), 500
 
 
-@admin_bp.route('/subscriptions/analytics', methods=['GET'])
-@super_admin_required
-def get_subscription_analytics():
-    """Get subscription analytics and metrics"""
-    try:
-        # Subscription status breakdown
-        status_breakdown = db.session.query(
-            GymSubscription.status,
-            func.count(GymSubscription.id).label('count'),
-            func.sum(GymSubscription.monthly_price).label('total_revenue')
-        ).group_by(GymSubscription.status).all()
-        
-        # Plan popularity
-        plan_popularity = db.session.query(
-            GymSubscription.plan_name,
-            func.count(GymSubscription.id).label('count'),
-            func.avg(GymSubscription.monthly_price).label('avg_price')
-        ).filter(GymSubscription.status == 'Active').group_by(GymSubscription.plan_name).all()
-        
-        # Expiring subscriptions (next 30 days)
-        thirty_days_from_now = date.today() + timedelta(days=30)
-        expiring_subscriptions = GymSubscription.query.filter(
-            and_(
-                GymSubscription.status == 'Active',
-                GymSubscription.next_billing_date <= thirty_days_from_now
-            )
-        ).count()
-        
-        # Revenue metrics
-        total_monthly_revenue = db.session.query(
-            func.sum(GymSubscription.monthly_price)
-        ).filter(GymSubscription.status == 'Active').scalar() or 0
-        
-        # Auto-renewal stats
-        auto_renew_enabled = GymSubscription.query.filter(
-            and_(GymSubscription.status == 'Active', GymSubscription.auto_renew == True)
-        ).count()
-        
-        auto_renew_disabled = GymSubscription.query.filter(
-            and_(GymSubscription.status == 'Active', GymSubscription.auto_renew == False)
-        ).count()
-        
-        return jsonify({
-            'status_breakdown': [
-                {
-                    'status': row.status,
-                    'count': row.count,
-                    'total_revenue': float(row.total_revenue or 0)
-                }
-                for row in status_breakdown
-            ],
-            'plan_popularity': [
-                {
-                    'plan_name': row.plan_name,
-                    'subscriber_count': row.count,
-                    'average_price': float(row.avg_price or 0)
-                }
-                for row in plan_popularity
-            ],
-            'metrics': {
-                'total_monthly_revenue': float(total_monthly_revenue),
-                'expiring_next_30_days': expiring_subscriptions,
-                'auto_renew_enabled': auto_renew_enabled,
-                'auto_renew_disabled': auto_renew_disabled
-            },
-            'generated_at': datetime.utcnow().isoformat()
-        })
-        
-    except Exception as e:
-        return jsonify({'error': 'Failed to fetch subscription analytics', 'details': str(e)}), 500
+# Duplicate removed - functions already exist above
 
-
-@admin_bp.route('/subscriptions/plans', methods=['GET'])
-@super_admin_required
-def get_subscription_plans():
-    """Get available subscription plans (for creating new subscriptions)"""
-    try:
-        # This could be from a configuration table or hardcoded plans
-        # For now, return predefined plans
-        plans = [
-            {
-                'name': 'Basic',
-                'monthly_price': 29.99,
-                'max_members': 50,
-                'max_trainers': 2,
-                'features': {
-                    'member_management': True,
-                    'payment_tracking': True,
-                    'basic_reports': True,
-                    'email_support': True,
-                    'api_access': False,
-                    'custom_branding': False
-                }
-            },
-            {
-                'name': 'Professional',
-                'monthly_price': 59.99,
-                'max_members': 200,
-                'max_trainers': 5,
-                'features': {
-                    'member_management': True,
-                    'payment_tracking': True,
-                    'basic_reports': True,
-                    'advanced_reports': True,
-                    'email_support': True,
-                    'phone_support': True,
-                    'api_access': True,
-                    'custom_branding': False
-                }
-            },
-            {
-                'name': 'Enterprise',
-                'monthly_price': 99.99,
-                'max_members': 1000,
-                'max_trainers': 20,
-                'features': {
-                    'member_management': True,
-                    'payment_tracking': True,
-                    'basic_reports': True,
-                    'advanced_reports': True,
-                    'custom_reports': True,
-                    'email_support': True,
-                    'phone_support': True,
-                    'priority_support': True,
-                    'api_access': True,
-                    'custom_branding': True,
-                    'white_label': True
-                }
-            }
-        ]
-        
-        return jsonify({'plans': plans})
-        
-    except Exception as e:
-        return jsonify({'error': 'Failed to fetch subscription plans', 'details': str(e)}), 500# 
-=============================================================================
+# =============================================================================
 # USER MANAGEMENT ENDPOINTS - Cross-Platform Administration
 # =============================================================================
 
@@ -2144,8 +2053,8 @@ def get_user_permissions(role):
     }
     
     return permissions.get(role, permissions['member'])
-# ===
-==========================================================================
+
+# =============================================================================
 # SYSTEM SETTINGS ENDPOINTS
 # =============================================================================
 

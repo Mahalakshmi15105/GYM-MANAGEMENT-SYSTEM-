@@ -1,4 +1,5 @@
 import React from 'react';
+import { ArrowTrendingUpIcon, ArrowTrendingDownIcon, ArrowRightIcon } from '@heroicons/react/24/outline';
 
 /**
  * Reusable metric card component for Super Admin dashboard displays
@@ -68,9 +69,9 @@ const AdminMetricCard = ({
     if (!trendDirection) return null;
     
     const icons = {
-      up: '↗️',
-      down: '↘️',
-      neutral: '→'
+      up: <ArrowTrendingUpIcon className="w-3 h-3" />,
+      down: <ArrowTrendingDownIcon className="w-3 h-3" />,
+      neutral: <ArrowRightIcon className="w-3 h-3" />
     };
     
     return icons[trendDirection];
@@ -90,7 +91,11 @@ const AdminMetricCard = ({
         <h3 className="text-sm font-medium text-gray-600">{title}</h3>
         {icon && (
           <div className={`w-10 h-10 ${styles.bg} ${styles.border} border rounded-xl flex items-center justify-center ${styles.icon}`}>
-            <span className="text-lg">{icon}</span>
+            {typeof icon === 'string' ? (
+              <span className="text-lg">{icon}</span>
+            ) : (
+              icon
+            )}
           </div>
         )}
       </div>

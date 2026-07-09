@@ -40,6 +40,22 @@ def create_app(config_class=Config):
     # Register analytics blueprint
     from app.routes.analytics import analytics_bp
     app.register_blueprint(analytics_bp, url_prefix='/api/analytics')
+
+    # Register gym owner reports blueprint
+    from app.routes.reports import reports_bp
+    app.register_blueprint(reports_bp, url_prefix='/api/reports')
+    
+    # Register gym logo blueprint
+    from app.routes.gym_logo import gym_logo_bp
+    app.register_blueprint(gym_logo_bp, url_prefix='/api/gym/logo')
+    
+    # Register gym settings blueprint
+    from app.routes.gym_settings import gym_settings_bp
+    app.register_blueprint(gym_settings_bp, url_prefix='/api/gym')
+    
+    # Register admin blueprint (Super Admin functionality)
+    from app.routes.admin import admin_bp
+    app.register_blueprint(admin_bp, url_prefix='/api/admin')
     
     # Create DB tables automatically on boot if DB is connected
     with app.app_context():

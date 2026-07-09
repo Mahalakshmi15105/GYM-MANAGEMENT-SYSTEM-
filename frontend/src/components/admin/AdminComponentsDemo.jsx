@@ -5,6 +5,13 @@ import {
   AdminActionModal, 
   AdminChart 
 } from './index';
+import {
+  BuildingOffice,
+  Users,
+  CurrencyDollar,
+  Ticket,
+  Clock
+} from '@heroicons/react/24/outline';
 
 /**
  * Demo page showcasing all Super Admin UI components
@@ -93,7 +100,7 @@ const AdminComponentsDemo = () => {
               title="Total Gyms"
               value={247}
               subtitle="Registered facilities"
-              icon="🏢"
+              icon={<BuildingOffice className="w-6 h-6" />}
               trend="+12%"
               trendDirection="up"
               color="blue"
@@ -102,7 +109,7 @@ const AdminComponentsDemo = () => {
               title="Active Members"
               value={15420}
               subtitle="Across all gyms"
-              icon="👥"
+              icon={<Users className="w-6 h-6" />}
               trend="+8.5%"
               trendDirection="up"
               color="green"
@@ -111,7 +118,7 @@ const AdminComponentsDemo = () => {
               title="Monthly Revenue"
               value="$89,240"
               subtitle="Platform earnings"
-              icon="💰"
+              icon={<CurrencyDollar className="w-6 h-6" />}
               trend="-2.1%"
               trendDirection="down"
               color="orange"
@@ -120,7 +127,7 @@ const AdminComponentsDemo = () => {
               title="Support Tickets"
               value={23}
               subtitle="Open issues"
-              icon="🎫"
+              icon={<Ticket className="w-6 h-6" />}
               trend="0%"
               trendDirection="neutral"
               color="red"
@@ -222,7 +229,7 @@ const AdminComponentsDemo = () => {
               title="Loading Metric"
               value={1234}
               loading={true}
-              icon="⏳"
+              icon={<Clock className="w-6 h-6" />}
             />
             <div>
               <AdminDataTable

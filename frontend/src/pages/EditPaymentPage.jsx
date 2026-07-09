@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../services/api';
+import { ArrowLeftIcon } from '@heroicons/react/24/outline';
 
 export default function EditPaymentPage() {
   const { id } = useParams();
@@ -157,9 +158,9 @@ export default function EditPaymentPage() {
         </div>
         <button
           onClick={() => navigate('/payments')}
-          className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-xl text-sm font-medium transition-colors"
+          className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-xl text-sm font-medium transition-colors flex items-center gap-2"
         >
-          ← Back to Payments
+          <ArrowLeftIcon className="w-4 h-4" /> Back to Payments
         </button>
       </div>
     );
@@ -252,7 +253,7 @@ export default function EditPaymentPage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label className="block text-xs font-semibold uppercase tracking-wider text-gray-600 mb-2">
-                  Payment Amount (USD) *
+                  Payment Amount *
                 </label>
                 <input
                   type="number"
