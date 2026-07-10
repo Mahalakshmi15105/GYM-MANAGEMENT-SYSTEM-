@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { useTranslation } from "../utils/i18n";
 import api from "../services/api";
 import ResponsiveDataTable from "../components/admin/ResponsiveDataTable";
 import AdminChart from "../components/admin/AdminChart";
@@ -27,7 +28,8 @@ import * as XLSX from "xlsx";
 
 export default function ReportsPage() {
   const { user } = useAuth();
-  const { formatCurrency, setCurrencyCode } = useCurrency();
+  const { t } = useTranslation(user?.gym_id);
+  const { formatCurrency, setCurrencyCode } = useCurrency(user?.gym_id);
   const [reports, setReports] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -445,7 +447,7 @@ export default function ReportsPage() {
         <section className="space-y-4">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <h2 className="text-lg font-bold text-gray-900">Member Report</h2>
+              <h2 className="text-lg font-bold text-gray-900">{t('reports.membershipReport')}</h2>
               <p className="text-sm text-gray-600">
                 Showing all members for the current gym
               </p>
@@ -457,7 +459,7 @@ export default function ReportsPage() {
                 }
                 className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-xl text-sm font-medium"
               >
-                Sort {sortOrder.toUpperCase()}
+                {t('common.filter')} {sortOrder.toUpperCase()}
               </button>
             </div>
           </div>
@@ -471,7 +473,7 @@ export default function ReportsPage() {
           />
           <div className="flex items-center justify-between gap-3">
             <p className="text-sm text-gray-600">
-              Page {reports?.member_report?.page || 1} of{" "}
+              {t('pagination.page')} {reports?.member_report?.page || 1} {t('pagination.of')}{' '}
               {reports?.member_report?.pages || 1}
             </p>
             <div className="flex gap-2">
@@ -480,14 +482,14 @@ export default function ReportsPage() {
                 onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
                 className="px-4 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 disabled:opacity-50"
               >
-                Previous
+                {t('pagination.previous')}
               </button>
               <button
                 disabled={!reports?.member_report?.has_next}
                 onClick={() => setPage((prev) => prev + 1)}
                 className="px-4 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 disabled:opacity-50"
               >
-                Next
+                {t('pagination.next')}
               </button>
             </div>
           </div>
@@ -501,7 +503,7 @@ export default function ReportsPage() {
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
             <div>
               <h2 className="text-lg font-bold text-gray-900">
-                Attendance Report
+                {t('reports.attendanceReport')}
               </h2>
               <p className="text-sm text-gray-600">
                 Complete attendance history with member and date filters
@@ -515,7 +517,7 @@ export default function ReportsPage() {
                 }
                 className="bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm"
               >
-                <option value="">All Members</option>
+                <option value="">{t('members.title')}</option>
                 {(reports?.member_report?.members || []).map((member) => (
                   <option key={member.id} value={member.id}>
                     {member.full_name}
@@ -533,7 +535,7 @@ export default function ReportsPage() {
           />
           <div className="bg-white border border-gray-200 rounded-2xl p-4">
             <h3 className="font-semibold text-gray-900 mb-3">
-              Monthly Attendance Summary
+              {t('attendance.monthlyAttendance')}
             </h3>
             <ResponsiveDataTable
               data={
@@ -556,7 +558,7 @@ export default function ReportsPage() {
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
             <div>
               <h2 className="text-lg font-bold text-gray-900">
-                Payment Report
+                {t('reports.revenueReport')}
               </h2>
               <p className="text-sm text-gray-600">
                 All payment records with status and method filters
@@ -573,10 +575,10 @@ export default function ReportsPage() {
                 }
                 className="bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm"
               >
-                <option value="All">All Status</option>
-                <option value="Paid">Paid</option>
-                <option value="Pending">Pending</option>
-                <option value="Failed">Failed</option>
+                <option value="All">{t('common.status')}</option>
+                <option value="Paid">{t('payments.paid')}</option>
+                <option value="Pending">{t('payments.unpaid')}</option>
+                <option value="Failed">{t('payments.overdue')}</option>
               </select>
               <select
                 value={filters.paymentMethod}
@@ -588,11 +590,11 @@ export default function ReportsPage() {
                 }
                 className="bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm"
               >
-                <option value="All">All Methods</option>
-                <option value="Cash">Cash</option>
-                <option value="UPI">UPI</option>
-                <option value="Card">Card</option>
-                <option value="Bank Transfer">Bank Transfer</option>
+                <option value="All">{t('common.filter')}</option>
+                <option value="Cash">{t('payments.cash')}</option>
+                <option value="UPI">{t('payments.online')}</option>
+                <option value="Card">{t('payments.card')}</option>
+                <option value="Bank Transfer">{t('payments.bank')}</option>
               </select>
             </div>
           </div>
@@ -604,7 +606,7 @@ export default function ReportsPage() {
             mobileCardLayout={true}
           />
           <div className="bg-white border border-gray-200 rounded-2xl p-4 flex items-center justify-between">
-            <span className="text-sm text-gray-600">Total Amount</span>
+            <span className="text-sm text-gray-600">{t('reports.totalAmount')}</span>
             <span className="font-bold text-gray-900">
               {formatCurrency(reports?.payment_report?.total_amount)}
             </span>
@@ -617,7 +619,7 @@ export default function ReportsPage() {
       <section className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
           <AdminMetricCard
-            title="Daily Revenue"
+            title={t('reports.dailyRevenue')}
             value={formatCurrency(
               reports?.revenue_report?.summary_cards?.daily_revenue,
             )}
@@ -626,7 +628,7 @@ export default function ReportsPage() {
             loading={loading}
           />
           <AdminMetricCard
-            title="Monthly Revenue"
+            title={t('dashboard.monthlyRevenue')}
             value={formatCurrency(
               reports?.revenue_report?.summary_cards?.monthly_revenue,
             )}
@@ -635,7 +637,7 @@ export default function ReportsPage() {
             loading={loading}
           />
           <AdminMetricCard
-            title="Yearly Revenue"
+            title={t('reports.yearlyRevenue')}
             value={formatCurrency(
               reports?.revenue_report?.summary_cards?.yearly_revenue,
             )}
@@ -644,7 +646,7 @@ export default function ReportsPage() {
             loading={loading}
           />
           <AdminMetricCard
-            title="Total Revenue"
+            title={t('reports.totalRevenue')}
             value={formatCurrency(
               reports?.revenue_report?.summary_cards?.total_revenue,
             )}
@@ -658,32 +660,32 @@ export default function ReportsPage() {
           <AdminChart
             type="line"
             data={monthRevenueData}
-            title="Monthly Revenue"
-            subtitle="Last 6 months"
+            title={t('dashboard.monthlyRevenue')}
+            subtitle={t('reports.last6Months')}
             color="orange"
             loading={loading}
           />
           <AdminChart
             type="bar"
             data={attendanceTrendData}
-            title="Attendance Trend"
-            subtitle="Last 13 days"
+            title={t('attendance.weeklyAttendance')}
+            subtitle={t('reports.last13Days')}
             color="blue"
             loading={loading}
           />
           <AdminChart
             type="pie"
             data={paymentStatusData}
-            title="Payment Status"
-            subtitle="Paid vs pending vs failed"
+            title={t('payments.paymentStatus')}
+            subtitle={t('reports.paymentStatusSubtitle')}
             color="green"
             loading={loading}
           />
           <AdminChart
             type="pie"
             data={activeInactiveData}
-            title="Active vs Inactive Members"
-            subtitle="Member status split"
+            title={t('reports.activeInactiveMembers')}
+            subtitle={t('reports.memberStatusSplit')}
             color="red"
             loading={loading}
           />
@@ -699,7 +701,7 @@ export default function ReportsPage() {
         <ResponsiveDataTable
           data={reports?.revenue_report?.by_plan || []}
           columns={[
-            { key: "plan_name", label: "Membership Plan" },
+            { key: "plan_name", label: t('plans.title') },
             {
               key: "revenue",
               label: "Revenue",
@@ -722,7 +724,7 @@ export default function ReportsPage() {
         <div>
           <div className="flex items-center gap-2 mb-2">
             <DocumentMagnifyingGlassIcon className="w-6 h-6 text-orange-500" />
-            <h1 className="text-2xl font-bold text-gray-900">Reports</h1>
+            <h1 className="text-2xl font-bold text-gray-900">{t('reports.title')}</h1>
           </div>
           <p className="text-sm text-gray-600">
             Review tenant-scoped reports for Gym ID: {user?.gym_id}
@@ -734,19 +736,19 @@ export default function ReportsPage() {
             to="/dashboard"
             className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-xl text-sm font-medium transition-colors flex items-center gap-2"
           >
-            <ChevronLeftIcon className="w-4 h-4" /> Dashboard
+            <ChevronLeftIcon className="w-4 h-4" /> {t('nav.dashboard')}
           </Link>
           <button
             onClick={() => fetchReports()}
             className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-xl text-sm font-medium transition-colors flex items-center gap-2"
           >
-            <ArrowPathIcon className="w-4 h-4" /> Refresh
+            <ArrowPathIcon className="w-4 h-4" /> {t('common.refresh')}
           </button>
           <button
             onClick={printReport}
             className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-xl text-sm font-medium transition-colors flex items-center gap-2"
           >
-            <PrinterIcon className="w-4 h-4" /> Print
+            <PrinterIcon className="w-4 h-4" /> {t('common.print')}
           </button>
           <button
             onClick={() =>
@@ -765,7 +767,7 @@ export default function ReportsPage() {
             }
             className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-xl text-sm font-medium transition-colors flex items-center gap-2"
           >
-            <DocumentArrowDownIcon className="w-4 h-4" /> Export
+            <DocumentArrowDownIcon className="w-4 h-4" /> {t('common.export')}
           </button>
         </div>
       </div>
@@ -774,7 +776,7 @@ export default function ReportsPage() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
           <div className="lg:col-span-5">
             <label className="block text-xs font-semibold uppercase tracking-wider text-gray-600 mb-2">
-              Global Search
+              {t('common.search')}
             </label>
             <div className="relative">
               <MagnifyingGlassIcon className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -785,14 +787,14 @@ export default function ReportsPage() {
                   setSearchQuery(e.target.value);
                   setPage(1);
                 }}
-                placeholder="Search members, attendance, payments, or transactions"
+                placeholder={t('reports.searchPlaceholder')}
                 className="w-full bg-gray-50 border border-gray-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 rounded-xl pl-10 pr-4 py-3 text-sm text-gray-900 placeholder-gray-500 focus:outline-none transition-all duration-200"
               />
             </div>
           </div>
           <div className="lg:col-span-2">
             <label className="block text-xs font-semibold uppercase tracking-wider text-gray-600 mb-2">
-              Start Date
+              {t('reports.fromDate')}
             </label>
             <input
               type="date"
@@ -806,7 +808,7 @@ export default function ReportsPage() {
           </div>
           <div className="lg:col-span-2">
             <label className="block text-xs font-semibold uppercase tracking-wider text-gray-600 mb-2">
-              End Date
+              {t('reports.toDate')}
             </label>
             <input
               type="date"
@@ -820,7 +822,7 @@ export default function ReportsPage() {
           </div>
           <div className="lg:col-span-2">
             <label className="block text-xs font-semibold uppercase tracking-wider text-gray-600 mb-2">
-              Rows per page
+              {t('common.rowsPerPage')}
             </label>
             <select
               value={perPage}
@@ -856,28 +858,28 @@ export default function ReportsPage() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6 print:grid-cols-2 print:gap-4">
         <AdminMetricCard
-          title="Total Members"
+          title={t('dashboard.totalMembers')}
           value={summary.total_members || 0}
           icon={<UsersIcon className="w-5 h-5" />}
           color="orange"
           loading={loading}
         />
         <AdminMetricCard
-          title="Total Attendance"
+          title={t('attendance.title')}
           value={summary.total_attendance || 0}
           icon={<CalendarIcon className="w-5 h-5" />}
           color="blue"
           loading={loading}
         />
         <AdminMetricCard
-          title="Total Payments"
+          title={t('payments.title')}
           value={summary.total_payments || 0}
           icon={<CreditCardIcon className="w-5 h-5" />}
           color="green"
           loading={loading}
         />
         <AdminMetricCard
-          title="Total Revenue"
+          title={t('reports.totalRevenue')}
           value={formatCurrency(summary.total_revenue)}
           icon={<BanknotesIcon className="w-5 h-5" />}
           color="red"
@@ -888,10 +890,10 @@ export default function ReportsPage() {
       <div className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm print:hidden">
         <div className="flex flex-wrap gap-2">
           {[
-            { key: "member", label: "Member Report" },
-            { key: "attendance", label: "Attendance Report" },
-            { key: "payments", label: "Payment Report" },
-            { key: "revenue", label: "Revenue Report" },
+            { key: "member", label: t('reports.membershipReport') },
+            { key: "attendance", label: t('reports.attendanceReport') },
+            { key: "payments", label: t('reports.revenueReport') },
+            { key: "revenue", label: t('reports.revenueReport') },
           ].map((item) => (
             <button
               key={item.key}
@@ -916,13 +918,13 @@ export default function ReportsPage() {
         isOpen={showMemberModal}
         onClose={() => setShowMemberModal(false)}
         onConfirm={() => setShowMemberModal(false)}
-        title="Member Report"
+        title={t('reports.membershipReport')}
         message={
           memberDetailData
             ? `${memberDetailData.full_name} detailed report`
-            : "Loading member report..."
+            : t('common.loading')
         }
-        confirmText="Close"
+        confirmText={t('common.close')}
         type="info"
         loading={memberDetailLoading}
       >
@@ -930,43 +932,43 @@ export default function ReportsPage() {
           <div className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
               <div>
-                <span className="text-gray-500">Membership Plan:</span>{" "}
+                <span className="text-gray-500">{t('plans.title')}:</span>{" "}
                 <span className="font-medium text-gray-900">
                   {memberDetailData.membership_plan || "-"}
                 </span>
               </div>
               <div>
-                <span className="text-gray-500">Join Date:</span>{" "}
+                <span className="text-gray-500">{t('members.joinDate')}:</span>{" "}
                 <span className="font-medium text-gray-900">
                   {formatDate(memberDetail?.join_date)}
                 </span>
               </div>
               <div>
-                <span className="text-gray-500">Expiry Date:</span>{" "}
+                <span className="text-gray-500">{t('members.expiryDate')}:</span>{" "}
                 <span className="font-medium text-gray-900">
                   {formatDate(memberDetail?.expiry_date)}
                 </span>
               </div>
               <div>
-                <span className="text-gray-500">Remaining Days:</span>{" "}
+                <span className="text-gray-500">{t('members.remainingDays')}:</span>{" "}
                 <span className="font-medium text-gray-900">
                   {memberDetail?.remaining_membership_days ?? "-"}
                 </span>
               </div>
               <div>
-                <span className="text-gray-500">Total Attendance:</span>{" "}
+                <span className="text-gray-500">{t('attendance.title')}:</span>{" "}
                 <span className="font-medium text-gray-900">
                   {memberDetail?.total_attendance ?? 0}
                 </span>
               </div>
               <div>
-                <span className="text-gray-500">Total Paid:</span>{" "}
+                <span className="text-gray-500">{t('payments.totalPaid')}:</span>{" "}
                 <span className="font-medium text-gray-900">
                   {formatCurrency(memberDetail?.total_amount_paid)}
                 </span>
               </div>
               <div>
-                <span className="text-gray-500">Last Payment:</span>{" "}
+                <span className="text-gray-500">{t('payments.lastPayment')}:</span>{" "}
                 <span className="font-medium text-gray-900">
                   {formatDate(memberDetail?.last_payment?.payment_date)}
                 </span>
@@ -980,7 +982,7 @@ export default function ReportsPage() {
             </div>
             <div>
               <h4 className="font-semibold text-gray-900 mb-2">
-                Attendance History
+                {t('attendance.attendanceHistory')}
               </h4>
               <ResponsiveDataTable
                 data={memberDetail?.attendance_history || []}
@@ -992,7 +994,7 @@ export default function ReportsPage() {
             </div>
             <div>
               <h4 className="font-semibold text-gray-900 mb-2">
-                Payment History
+                {t('payments.paymentHistory')}
               </h4>
               <ResponsiveDataTable
                 data={memberDetail?.payment_history || []}

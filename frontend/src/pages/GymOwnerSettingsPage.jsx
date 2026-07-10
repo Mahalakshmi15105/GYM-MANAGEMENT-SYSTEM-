@@ -16,8 +16,8 @@ import {
 export default function GymOwnerSettingsPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { t, languageOptions, setLanguage } = useTranslation();
-  const { formatCurrency, currencyOptions, setCurrencyCode } = useCurrency();
+  const { t, languageOptions, setLanguage } = useTranslation(user?.gym_id);
+  const { formatCurrency, currencyOptions, setCurrencyCode } = useCurrency(user?.gym_id);
   
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -33,7 +33,7 @@ export default function GymOwnerSettingsPage() {
     try {
       setLoading(true);
       const response = await api.get('/api/gym/profile');
-      setGymData(response.data);
+      setGymData(response.data.gym);
     } catch (err) {
       console.error('Failed to fetch gym settings:', err);
       setError(err.response?.data?.error || t('messages.operationFailed'));
@@ -55,18 +55,18 @@ export default function GymOwnerSettingsPage() {
         currency: newCurrency
       });
 
-      // Update local storage and trigger re-render across the app
+      // Update local storage with gym-specific key and trigger re-render across the app
       setCurrencyCode(newCurrency);
       
       setGymData(response.data.gym);
-      setSuccess(`Currency updated to ${newCurrency} successfully!`);
+      setSuccess(t('messages.currencyUpdated', { currency: newCurrency }));
       
       // Clear success message after 3 seconds
       setTimeout(() => setSuccess(''), 3000);
       
     } catch (err) {
       console.error('Failed to update currency:', err);
-      setError(err.response?.data?.error || 'Failed to update currency');
+      setError(err.response?.data?.error || t('messages.operationFailed'));
     } finally {
       setUpdating(false);
     }
@@ -85,18 +85,18 @@ export default function GymOwnerSettingsPage() {
         language: newLanguage
       });
 
-      // Update local storage and trigger re-render across the app
+      // Update local storage with gym-specific key and trigger re-render across the app
       setLanguage(newLanguage);
       
       setGymData(response.data.gym);
-      setSuccess(`Language updated to ${languageOptions.find(l => l.code === newLanguage)?.name || newLanguage} successfully!`);
+      setSuccess(t('messages.languageUpdated', { language: languageOptions.find(l => l.code === newLanguage)?.name || newLanguage }));
       
       // Clear success message after 3 seconds
       setTimeout(() => setSuccess(''), 3000);
       
     } catch (err) {
       console.error('Failed to update language:', err);
-      setError(err.response?.data?.error || 'Failed to update language');
+      setError(err.response?.data?.error || t('messages.operationFailed'));
     } finally {
       setUpdating(false);
     }
@@ -117,9 +117,9 @@ export default function GymOwnerSettingsPage() {
       {/* Header */}
       <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
         <h1 className="text-2xl font-bold text-gray-900 mb-2 flex items-center gap-2">
-          <CogIcon className="w-6 h-6 text-orange-500" /> Settings
+          <CogIcon className="w-6 h-6 text-orange-500" /> {t('nav.settings')}
         </h1>
-        <p className="text-gray-600">Manage your gym's currency, language, and preferences</p>
+        <p className="text-gray-600">{t('settings.description')}</p>
       </div>
 
       {/* Success/Error Messages */}
@@ -139,16 +139,16 @@ export default function GymOwnerSettingsPage() {
       {/* Currency Settings Section */}
       <div className="bg-white border border-gray-200 p-6 rounded-2xl shadow-sm">
         <h2 className="text-lg font-bold text-gray-900 mb-6 flex items-center gap-2">
-          <CurrencyDollarIcon className="w-5 h-5 text-orange-500" /> Currency Settings
+          <CurrencyDollarIcon className="w-5 h-5 text-orange-500" /> {t('settings.currencySettings')}
         </h2>
         
         <div className="space-y-6">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Select your preferred currency
+              {t('settings.selectCurrency')}
             </label>
             <p className="text-sm text-gray-600 mb-4">
-              This currency will be used across your gym management system including membership plans, payments, reports, and receipts.
+              {t('settings.currencyDescription')}
             </p>
             
             <select
@@ -166,7 +166,7 @@ export default function GymOwnerSettingsPage() {
             
             <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
               <p className="text-sm text-blue-900">
-                <span className="font-medium">Current Currency:</span> {gymData?.currency || 'INR'} ({currencyOptions.find(c => c.code === gymData?.currency)?.symbol || '₹'})
+                <span className="font-medium">{t('settings.currentCurrency')}:</span> {gymData?.currency || 'INR'} ({currencyOptions.find(c => c.code === gymData?.currency)?.symbol || '₹'})
               </p>
               <p className="text-sm text-blue-700 mt-1">
                 Example: {formatCurrency(1000)}
@@ -179,16 +179,16 @@ export default function GymOwnerSettingsPage() {
       {/* Language Settings Section */}
       <div className="bg-white border border-gray-200 p-6 rounded-2xl shadow-sm">
         <h2 className="text-lg font-bold text-gray-900 mb-6 flex items-center gap-2">
-          <LanguageIcon className="w-5 h-5 text-orange-500" /> Language Settings
+          <LanguageIcon className="w-5 h-5 text-orange-500" /> {t('settings.languageSettings')}
         </h2>
         
         <div className="space-y-6">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Select your preferred language
+              {t('settings.selectLanguage')}
             </label>
             <p className="text-sm text-gray-600 mb-4">
-              This language will be used for the interface, reports, and all gym management features.
+              {t('settings.languageDescription')}
             </p>
             
             <select
@@ -206,7 +206,7 @@ export default function GymOwnerSettingsPage() {
             
             <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
               <p className="text-sm text-blue-900">
-                <span className="font-medium">Current Language:</span> {languageOptions.find(l => l.code === gymData?.language)?.name || 'English'} 
+                <span className="font-medium">{t('settings.currentLanguage')}:</span> {languageOptions.find(l => l.code === gymData?.language)?.name || 'English'} 
                 ({languageOptions.find(l => l.code === gymData?.language)?.nativeName || 'English'})
               </p>
               <p className="text-sm text-blue-700 mt-1">
@@ -220,24 +220,24 @@ export default function GymOwnerSettingsPage() {
       {/* Attendance QR Code Section */}
       <div className="bg-white border border-gray-200 p-6 rounded-2xl shadow-sm">
         <h2 className="text-lg font-bold text-gray-900 mb-6 flex items-center gap-2">
-          <QrCodeIcon className="w-5 h-5 text-orange-500" /> Attendance QR Code
+          <QrCodeIcon className="w-5 h-5 text-orange-500" /> {t('settings.qrCode')}
         </h2>
         
         <div className="space-y-4">
           <p className="text-sm text-gray-600">
-            Manage your gym's attendance QR code. Members scan this code to check in at your gym.
+            {t('settings.qrCodeDescription')}
           </p>
           
           <button
             onClick={() => navigate('/gym-qr')}
             className="bg-orange-600 hover:bg-orange-700 text-white font-medium py-3 px-6 rounded-xl transition-colors"
           >
-            Manage QR Code
+            {t('settings.manageQrCode')}
           </button>
           
           <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
             <p className="text-sm text-blue-900">
-              <span className="font-medium">Status:</span> {gymData?.attendance_qr ? 'QR Code Active' : 'No QR Code Generated'}
+              <span className="font-medium">{t('settings.status')}:</span> {gymData?.attendance_qr ? t('settings.qrActive') : t('settings.noQrCode')}
             </p>
             {gymData?.attendance_qr && (
               <p className="text-sm text-blue-700 mt-1">
@@ -250,34 +250,34 @@ export default function GymOwnerSettingsPage() {
 
       {/* Settings Information */}
       <div className="bg-white border border-gray-200 p-6 rounded-2xl shadow-sm">
-        <h2 className="text-lg font-bold text-gray-900 mb-4">Settings Information</h2>
+        <h2 className="text-lg font-bold text-gray-900 mb-4">{t('settings.settingsInfo')}</h2>
         
         <div className="grid md:grid-cols-2 gap-6">
           <div>
-            <h3 className="font-semibold text-gray-900 mb-2">Currency affects:</h3>
+            <h3 className="font-semibold text-gray-900 mb-2">{t('settings.currencyAffects')}:</h3>
             <ul className="text-sm text-gray-600 space-y-1">
-              <li>• Membership plan pricing</li>
-              <li>• Payment records and receipts</li>
-              <li>• Financial reports and analytics</li>
-              <li>• Revenue calculations</li>
-              <li>• Billing statements</li>
+              <li>• {t('settings.membershipPricing')}</li>
+              <li>• {t('settings.paymentRecords')}</li>
+              <li>• {t('settings.financialReports')}</li>
+              <li>• {t('settings.revenueCalculations')}</li>
+              <li>• {t('settings.billingStatements')}</li>
             </ul>
           </div>
           <div>
-            <h3 className="font-semibold text-gray-900 mb-2">Language affects:</h3>
+            <h3 className="font-semibold text-gray-900 mb-2">{t('settings.languageAffects')}:</h3>
             <ul className="text-sm text-gray-600 space-y-1">
-              <li>• Interface text and labels</li>
-              <li>• Menu items and navigation</li>
-              <li>• Reports and printouts</li>
-              <li>• System notifications</li>
-              <li>• Error and success messages</li>
+              <li>• {t('settings.interfaceText')}</li>
+              <li>• {t('settings.menuNavigation')}</li>
+              <li>• {t('settings.reportsPrintouts')}</li>
+              <li>• {t('settings.notifications')}</li>
+              <li>• {t('settings.messages')}</li>
             </ul>
           </div>
         </div>
         
         <div className="mt-6 pt-6 border-t border-gray-200">
           <p className="text-xs text-gray-600">
-            <span className="font-medium">Note:</span> Changes to currency and language settings are applied immediately across your entire gym management system.
+            <span className="font-medium">{t('common.note')}:</span> {t('settings.immediateApplication')}
           </p>
         </div>
       </div>

@@ -116,7 +116,6 @@ def create_member():
             phone=data['phone'],
             email=data.get('email', ''),
             password_hash=password_hash,
-            password_changed=False,  # Force first-time password change
             address=data.get('address', ''),
             emergency_contact_name=data.get('emergency_contact_name', ''),
             emergency_contact_phone=data.get('emergency_contact_phone', ''),
@@ -228,7 +227,6 @@ def update_member(member_id):
         # Handle password update
         if data.get('password'):
             member.password_hash = bcrypt.generate_password_hash(data['password']).decode('utf-8')
-            member.password_changed = True
         
         member.updated_at = datetime.utcnow()
         db.session.commit()

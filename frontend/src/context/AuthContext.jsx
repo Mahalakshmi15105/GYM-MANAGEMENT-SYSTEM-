@@ -1,4 +1,7 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
+import api from '../services/api';
+import { setStoredCurrencyCode } from '../utils/currency';
+import { setStoredLanguageCode } from '../utils/i18n';
 
 const AuthContext = createContext(null);
 
@@ -31,6 +34,11 @@ export const AuthProvider = ({ children }) => {
         
         setToken(storedToken);
         setUser(parsedUser);
+
+        // Load gym settings for gym owners
+        if (parsedUser.role === 'gym_owner' && parsedUser.gym_id) {
+          loadGymSettings(storedToken, parsedUser.gym_id);
+        }
       } catch (e) {
         console.error('Error parsing stored user data:', e);
         localStorage.removeItem('flexigym_user');
@@ -40,18 +48,53 @@ export const AuthProvider = ({ children }) => {
     setLoading(false);
   }, []);
 
-  const login = (newToken, newUser) => {
+  const loadGymSettings = async (authToken, gymId) => {
+    try {
+      const response = await api.get('/api/gym/profile', {
+        headers: { Authorization: `Bearer ${authToken}` }
+      });
+      
+      if (response.data.gym) {
+        const gym = response.data.gym;
+        // Initialize currency and language from gym settings
+        if (gym.currency) {
+          setStoredCurrencyCode(gym.currency, gymId);
+        }
+        if (gym.language) {
+          setStoredLanguageCode(gym.language, gymId);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load gym settings:', error);
+      // Don't fail login if settings fail to load
+    }
+  };
+
+  const login = async (newToken, newUser) => {
     setToken(newToken);
     setUser(newUser);
     localStorage.setItem('flexigym_token', newToken);
     localStorage.setItem('flexigym_user', JSON.stringify(newUser));
+
+    // Load gym settings for gym owners
+    if (newUser.role === 'gym_owner' && newUser.gym_id) {
+      await loadGymSettings(newToken, newUser.gym_id);
+    }
   };
 
   const logout = () => {
+    const gymId = user?.gym_id;
+    
     setToken(null);
     setUser(null);
     localStorage.removeItem('flexigym_token');
     localStorage.removeItem('flexigym_user');
+    
+    // Clear gym-specific settings if gym_id exists
+    if (gymId) {
+      localStorage.removeItem(`flexigym_currency_${gymId}`);
+      localStorage.removeItem(`flexigym_language_${gymId}`);
+    }
   };
 
   // Enhanced authentication checks

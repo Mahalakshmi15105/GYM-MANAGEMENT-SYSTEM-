@@ -3,6 +3,7 @@ import { AdminMetricCard, AdminChart, AdminDataTable } from '../components/admin
 import MobileNavigation from '../components/admin/MobileNavigation';
 import { useResponsive } from '../hooks/useResponsive';
 import { useCurrency } from '../utils/currency';
+import NotificationBell from '../components/NotificationBell';
 import api from '../services/api';
 import '../styles/responsive.css';
 import {
@@ -23,7 +24,8 @@ import {
  * Super Admin Dashboard with platform-wide analytics and metrics
  */
 const SuperAdminDashboard = () => {
-  const { formatCurrency, setCurrencyCode } = useCurrency();
+  // Super Admin uses default currency (no gym_id)
+  const { formatCurrency, setCurrencyCode } = useCurrency(null);
   const [platformMetrics, setPlatformMetrics] = useState(null);
   const [growthMetrics, setGrowthMetrics] = useState(null);
   const { isMobile, isTablet } = useResponsive();
@@ -156,6 +158,7 @@ const SuperAdminDashboard = () => {
               </p>
             </div>
             <div className="flex items-center gap-4">
+              <NotificationBell />
               {lastUpdated && (
                 <div className="text-sm text-gray-500">
                   Last updated: {lastUpdated.toLocaleTimeString()}

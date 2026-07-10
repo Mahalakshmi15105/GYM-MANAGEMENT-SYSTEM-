@@ -4,6 +4,11 @@ export const DEFAULT_CURRENCY = "INR";
 export const CURRENCY_STORAGE_KEY = "flexigym_currency";
 const CURRENCY_CHANGE_EVENT = "flexigym-currency-change";
 
+// Get gym-specific storage key
+export function getGymCurrencyKey(gymId) {
+  return gymId ? `${CURRENCY_STORAGE_KEY}_${gymId}` : CURRENCY_STORAGE_KEY;
+}
+
 const CURRENCY_OPTIONS = [
   { code: "INR", label: "INR (₹)", symbol: "₹", locale: "en-IN" },
   { code: "USD", label: "USD ($)", symbol: "$", locale: "en-US" },
@@ -41,24 +46,26 @@ export function getCurrencyOption(currencyCode = DEFAULT_CURRENCY) {
   return CURRENCY_MAP[currencyCode] || CURRENCY_MAP[DEFAULT_CURRENCY];
 }
 
-export function getStoredCurrencyCode() {
+export function getStoredCurrencyCode(gymId = null) {
   if (typeof window === "undefined") {
     return DEFAULT_CURRENCY;
   }
 
-  const storedCurrency = window.localStorage.getItem(CURRENCY_STORAGE_KEY);
+  const storageKey = getGymCurrencyKey(gymId);
+  const storedCurrency = window.localStorage.getItem(storageKey);
   return CURRENCY_MAP[storedCurrency]?.code || DEFAULT_CURRENCY;
 }
 
-export function setStoredCurrencyCode(currencyCode) {
+export function setStoredCurrencyCode(currencyCode, gymId = null) {
   const normalizedCurrency =
     CURRENCY_MAP[currencyCode]?.code || DEFAULT_CURRENCY;
 
   if (typeof window !== "undefined") {
-    window.localStorage.setItem(CURRENCY_STORAGE_KEY, normalizedCurrency);
+    const storageKey = getGymCurrencyKey(gymId);
+    window.localStorage.setItem(storageKey, normalizedCurrency);
     window.dispatchEvent(
       new CustomEvent(CURRENCY_CHANGE_EVENT, {
-        detail: { currencyCode: normalizedCurrency },
+        detail: { currencyCode: normalizedCurrency, gymId },
       }),
     );
   }
@@ -84,16 +91,20 @@ export function formatCurrency(amount, currencyCode = getStoredCurrencyCode()) {
   }).format(numericAmount);
 }
 
-export function useCurrency() {
-  const [currencyCode, setCurrencyCode] = useState(getStoredCurrencyCode());
+export function useCurrency(gymId = null) {
+  const [currencyCode, setCurrencyCode] = useState(getStoredCurrencyCode(gymId));
 
   useEffect(() => {
     const handleCurrencyChange = (event) => {
-      setCurrencyCode(event.detail?.currencyCode || getStoredCurrencyCode());
+      // Only update if the event is for this gym or no gym specified
+      if (!gymId || event.detail?.gymId === gymId) {
+        setCurrencyCode(event.detail?.currencyCode || getStoredCurrencyCode(gymId));
+      }
     };
 
     const handleStorageChange = (event) => {
-      if (event.key === CURRENCY_STORAGE_KEY) {
+      const storageKey = getGymCurrencyKey(gymId);
+      if (event.key === storageKey) {
         setCurrencyCode(event.newValue || DEFAULT_CURRENCY);
       }
     };
@@ -105,7 +116,7 @@ export function useCurrency() {
       window.removeEventListener(CURRENCY_CHANGE_EVENT, handleCurrencyChange);
       window.removeEventListener("storage", handleStorageChange);
     };
-  }, []);
+  }, [gymId]);
 
   const currencyOption = useMemo(
     () => getCurrencyOption(currencyCode),
@@ -118,6 +129,6 @@ export function useCurrency() {
     currencySymbol: currencyOption.symbol,
     currencyOptions: CURRENCY_OPTIONS,
     formatCurrency: (amount) => formatCurrency(amount, currencyOption.code),
-    setCurrencyCode: setStoredCurrencyCode,
+    setCurrencyCode: (code) => setStoredCurrencyCode(code, gymId),
   };
 }

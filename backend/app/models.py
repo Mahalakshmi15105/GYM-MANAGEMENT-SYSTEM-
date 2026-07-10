@@ -16,6 +16,7 @@ class Gym(db.Model):
     currency = db.Column(db.String(3), nullable=True, default='INR')
     language = db.Column(db.String(5), nullable=True, default='en')
     attendance_qr = db.Column(db.String(255), nullable=True, unique=True)  # Unique QR code for gym attendance
+    subscription_end_date = db.Column(db.Date, nullable=True)  # Gym subscription expiry date
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     # Relationships
@@ -33,6 +34,7 @@ class Gym(db.Model):
             'currency': self.currency or 'INR',
             'language': self.language or 'en',
             'attendance_qr': self.attendance_qr,
+            'subscription_end_date': self.subscription_end_date.isoformat() if self.subscription_end_date else None,
             'created_at': self.created_at.isoformat() if self.created_at else None
         }
 
@@ -107,7 +109,6 @@ class Member(db.Model):
     phone = db.Column(db.String(20), nullable=False)
     email = db.Column(db.String(120), nullable=False)
     password_hash = db.Column(db.String(255), nullable=True)  # Added for member account creation
-    password_changed = db.Column(db.Boolean, default=False, nullable=False)  # Track if password was changed from initial
     address = db.Column(db.Text, nullable=True)
     emergency_contact_name = db.Column(db.String(100), nullable=True)
     emergency_contact_phone = db.Column(db.String(20), nullable=True)
@@ -142,7 +143,6 @@ class Member(db.Model):
             'status': self.status,
             'photo': self.photo,
             'has_account': bool(self.password_hash and self.password_hash.strip()),  # Indicates if member has login account
-            'password_changed': self.password_changed,  # Include password_changed field
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None
         }
@@ -241,4 +241,37 @@ class MembershipPlan(db.Model):
             'status': self.status,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None
+        }
+
+
+class Notification(db.Model):
+    __tablename__ = 'notifications'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    gym_id = db.Column(db.Integer, db.ForeignKey('gyms.id'), nullable=True, index=True)  # Nullable for Super Admin notifications
+    recipient_role = db.Column(db.String(20), nullable=False, index=True)  # 'super_admin', 'gym_owner', 'member'
+    recipient_id = db.Column(db.Integer, nullable=True, index=True)  # User or Member ID
+    notification_type = db.Column(db.String(50), nullable=False, index=True)  # 'gym_subscription_expiry', 'member_membership_expiry'
+    title = db.Column(db.String(255), nullable=False)
+    message = db.Column(db.Text, nullable=False)
+    reference_id = db.Column(db.Integer, nullable=True)  # Gym ID or Member ID
+    is_read = db.Column(db.Boolean, default=False, nullable=False, index=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False, index=True)
+    scheduled_for = db.Column(db.DateTime, nullable=True, index=True)  # When the notification should be delivered
+    delivered_at = db.Column(db.DateTime, nullable=True)  # When the notification was actually delivered
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'gym_id': self.gym_id,
+            'recipient_role': self.recipient_role,
+            'recipient_id': self.recipient_id,
+            'notification_type': self.notification_type,
+            'title': self.title,
+            'message': self.message,
+            'reference_id': self.reference_id,
+            'is_read': self.is_read,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'scheduled_for': self.scheduled_for.isoformat() if self.scheduled_for else None,
+            'delivered_at': self.delivered_at.isoformat() if self.delivered_at else None
         }

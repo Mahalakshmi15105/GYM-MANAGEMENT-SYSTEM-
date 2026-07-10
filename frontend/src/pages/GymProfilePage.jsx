@@ -14,7 +14,7 @@ import {
 
 export default function GymProfilePage() {
   const { user } = useAuth();
-  const { t } = useTranslation();
+  const { t } = useTranslation(user?.gym_id);
   const [gymInfo, setGymInfo] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');

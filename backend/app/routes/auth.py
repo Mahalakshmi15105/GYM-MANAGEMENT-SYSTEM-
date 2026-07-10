@@ -170,9 +170,6 @@ def login():
         gym_address = gym.address if gym else None
         gym_phone = gym.phone if gym else None
         
-        # Check if this is first time login (password hasn't been changed from default)
-        first_time_login = not member.password_changed
-        
         access_token = create_access_token(
             identity=str(member.id),
             additional_claims={
@@ -186,8 +183,7 @@ def login():
                 'last_name': member.last_name,
                 'gym_name': gym_name,
                 'gym_address': gym_address,
-                'gym_phone': gym_phone,
-                'first_time_login': first_time_login
+                'gym_phone': gym_phone
             }
         )
         
@@ -206,8 +202,7 @@ def login():
                 'last_name': member.last_name,
                 'gym_name': gym_name,
                 'gym_address': gym_address,
-                'gym_phone': gym_phone,
-                'first_time_login': first_time_login
+                'gym_phone': gym_phone
             }
         }), 200
     

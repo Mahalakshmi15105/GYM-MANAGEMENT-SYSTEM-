@@ -1,13 +1,15 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { useTranslation } from "../utils/i18n";
 import api from "../services/api";
 import { PlusIcon } from "@heroicons/react/24/outline";
 import { useCurrency } from "../utils/currency";
 
 export default function MembershipPlansPage() {
   const { user } = useAuth();
-  const { formatCurrency, setCurrencyCode } = useCurrency();
+  const { t } = useTranslation(user?.gym_id);
+  const { formatCurrency, setCurrencyCode } = useCurrency(user?.gym_id);
   const [plans, setPlans] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -93,7 +95,7 @@ export default function MembershipPlansPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 mb-1">
-            Membership Plans
+            {t('plans.title')}
           </h1>
           <p className="text-sm text-gray-600">
             Manage your gym's membership plans - Gym ID: {user?.gym_id}
@@ -103,7 +105,7 @@ export default function MembershipPlansPage() {
           to="/membership-plans/add"
           className="bg-orange-600 hover:bg-orange-700 text-white font-bold px-6 py-3 rounded-xl transition-all duration-200 self-start md:self-auto text-center shadow-sm flex items-center gap-2"
         >
-          <PlusIcon className="w-4 h-4" /> Add Plan
+          <PlusIcon className="w-4 h-4" /> {t('plans.addPlan')}
         </Link>
       </div>
 
@@ -112,7 +114,7 @@ export default function MembershipPlansPage() {
           <div className="flex-1">
             <input
               type="text"
-              placeholder="Search by plan name or description..."
+              placeholder={t('plans.searchPlans')}
               value={searchQuery}
               onChange={(e) => {
                 setSearchQuery(e.target.value);
@@ -127,9 +129,9 @@ export default function MembershipPlansPage() {
               onChange={(e) => setStatusFilter(e.target.value)}
               className="bg-gray-50 border border-gray-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 rounded-xl px-4 py-3 text-sm text-gray-900 focus:outline-none transition-all duration-200"
             >
-              <option value="All">All Status</option>
-              <option value="Active">Active</option>
-              <option value="Inactive">Inactive</option>
+              <option value="All">{t('common.status')}</option>
+              <option value="Active">{t('common.active')}</option>
+              <option value="Inactive">{t('common.inactive')}</option>
             </select>
           </div>
         </div>
@@ -144,13 +146,11 @@ export default function MembershipPlansPage() {
       <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
         {loading ? (
           <div className="p-8 text-center text-gray-500">
-            Loading membership plans...
+            {t('common.loading')}
           </div>
         ) : filteredPlans.length === 0 ? (
           <div className="p-8 text-center text-gray-500">
-            {searchQuery
-              ? "No plans found matching your search."
-              : "No membership plans created yet."}
+            {searchQuery ? t('plans.noPlansFound') : t('empty.noPlansDesc')}
           </div>
         ) : (
           <div className="overflow-x-auto">

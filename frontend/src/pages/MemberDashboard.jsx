@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useCurrency } from '../utils/currency';
+import NotificationBell from '../components/NotificationBell';
+import Footer from '../components/Footer';
 import api from '../services/api';
 import GymLogo from '../components/GymLogo';
 import {
@@ -21,7 +23,7 @@ import {
 
 export default function MemberDashboard() {
   const { user, logout } = useAuth();
-  const { formatCurrency } = useCurrency();
+  const { formatCurrency } = useCurrency(user?.gym_id);
   const navigate = useNavigate();
   const location = useLocation();
   
@@ -166,12 +168,15 @@ export default function MemberDashboard() {
                 <h1 className="text-2xl font-bold text-gray-900">Welcome, {member.first_name}!</h1>
               </div>
             </div>
-            <button
-              onClick={handleLogout}
-              className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium"
-            >
-              Logout
-            </button>
+            <div className="flex items-center gap-3">
+              <NotificationBell />
+              <button
+                onClick={handleLogout}
+                className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium"
+              >
+                Logout
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -504,6 +509,8 @@ export default function MemberDashboard() {
           </div>
         )}
       </div>
+      
+      <Footer />
     </div>
   );
 }

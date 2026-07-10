@@ -61,6 +61,10 @@ def create_app(config_class=Config):
     from app.routes.admin import admin_bp
     app.register_blueprint(admin_bp, url_prefix='/api/admin')
     
+    # Register notifications blueprint
+    from app.routes.notifications import notifications_bp
+    app.register_blueprint(notifications_bp, url_prefix='/api/notifications')
+    
     # Create DB tables automatically on boot if DB is connected
     with app.app_context():
         try:

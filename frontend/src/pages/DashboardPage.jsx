@@ -1,7 +1,9 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { useTranslation } from "../utils/i18n";
 import GymLogo from "../components/GymLogo";
+import NotificationBell from "../components/NotificationBell";
 import api from "../services/api";
 import { useCurrency } from "../utils/currency";
 import {
@@ -25,7 +27,8 @@ import {
 
 export default function DashboardPage() {
   const { user } = useAuth();
-  const { formatCurrency, setCurrencyCode } = useCurrency();
+  const { t } = useTranslation(user?.gym_id);
+  const { formatCurrency, setCurrencyCode } = useCurrency(user?.gym_id);
   const [analytics, setAnalytics] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -85,7 +88,7 @@ export default function DashboardPage() {
     return (
       <div className="space-y-8">
         <div className="flex items-center justify-center py-12">
-          <div className="text-gray-600">Loading dashboard analytics...</div>
+          <div className="text-gray-600">{t('common.loading')}</div>
         </div>
       </div>
     );
@@ -109,7 +112,7 @@ export default function DashboardPage() {
           <GymLogo className="w-12 h-12" />
           <div>
             <h1 className="text-2xl font-bold text-gray-900 mb-1 flex items-center gap-2">
-              Welcome back, {user?.name || "Gym Owner"}{" "}
+              {t('dashboard.welcomeBack')}, {user?.name || "Gym Owner"}{" "}
               <HandRaisedIcon className="w-6 h-6 text-orange-500" />
             </h1>
             <p className="text-sm text-gray-600">
@@ -117,8 +120,11 @@ export default function DashboardPage() {
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2 text-xs bg-orange-50 text-orange-700 px-3.5 py-2 rounded-xl border border-orange-200 font-bold self-start md:self-auto">
-          <ShieldCheckIcon className="w-4 h-4" /> Multi-Tenant Active
+        <div className="flex items-center gap-3">
+          <NotificationBell />
+          <div className="flex items-center gap-2 text-xs bg-orange-50 text-orange-700 px-3.5 py-2 rounded-xl border border-orange-200 font-bold self-start md:self-auto">
+            <ShieldCheckIcon className="w-4 h-4" /> Multi-Tenant Active
+          </div>
         </div>
       </div>
 
@@ -128,7 +134,7 @@ export default function DashboardPage() {
         <div className="bg-white border border-gray-200 p-6 rounded-2xl shadow-sm">
           <div className="flex items-center justify-between mb-4">
             <span className="text-xs uppercase font-extrabold tracking-wider text-gray-600">
-              Total Members
+              {t('dashboard.totalMembers')}
             </span>
             <UsersIcon className="w-6 h-6 text-orange-500" />
           </div>
@@ -142,7 +148,7 @@ export default function DashboardPage() {
               {getGrowthIcon(analytics?.members?.growth_percentage || 0)}{" "}
               {Math.abs(analytics?.members?.growth_percentage || 0)}%
             </span>{" "}
-            recent growth
+ {t('dashboard.growth')}
           </div>
         </div>
 
@@ -150,7 +156,7 @@ export default function DashboardPage() {
         <div className="bg-white border border-gray-200 p-6 rounded-2xl shadow-sm">
           <div className="flex items-center justify-between mb-4">
             <span className="text-xs uppercase font-extrabold tracking-wider text-gray-600">
-              Today's Check-ins
+              {t('attendance.todayAttendance')}
             </span>
             <CalendarIcon className="w-6 h-6 text-orange-500" />
           </div>
@@ -161,7 +167,7 @@ export default function DashboardPage() {
             <span className="text-orange-600 font-semibold">
               {analytics?.attendance?.currently_inside || 0}
             </span>{" "}
-            currently inside
+ {t('attendance.presentMembers')}
           </div>
         </div>
 
@@ -169,7 +175,7 @@ export default function DashboardPage() {
         <div className="bg-white border border-gray-200 p-6 rounded-2xl shadow-sm">
           <div className="flex items-center justify-between mb-4">
             <span className="text-xs uppercase font-extrabold tracking-wider text-gray-600">
-              Monthly Revenue
+              {t('dashboard.monthlyRevenue')}
             </span>
             <CurrencyDollarIcon className="w-6 h-6 text-orange-500" />
           </div>
@@ -183,7 +189,7 @@ export default function DashboardPage() {
               {getGrowthIcon(analytics?.payments?.revenue_growth || 0)}{" "}
               {Math.abs(analytics?.payments?.revenue_growth || 0)}%
             </span>{" "}
-            vs last month
+ {t('dashboard.lastMonth')}
           </div>
         </div>
 
@@ -191,7 +197,7 @@ export default function DashboardPage() {
         <div className="bg-white border border-gray-200 p-6 rounded-2xl shadow-sm">
           <div className="flex items-center justify-between mb-4">
             <span className="text-xs uppercase font-extrabold tracking-wider text-gray-600">
-              Active Plans
+              {t('plans.title')}
             </span>
             <CreditCardIcon className="w-6 h-6 text-orange-500" />
           </div>
@@ -202,7 +208,7 @@ export default function DashboardPage() {
             <span className="text-orange-600 font-semibold">
               {analytics?.membership_plans?.total || 0}
             </span>{" "}
-            total plans
+ {t('dashboard.total')}
           </div>
         </div>
       </div>
@@ -212,8 +218,7 @@ export default function DashboardPage() {
         {/* Weekly Attendance Chart */}
         <div className="bg-white border border-gray-200 p-6 rounded-2xl shadow-sm">
           <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-            <ChartBarIcon className="w-5 h-5 text-orange-500" /> Weekly
-            Attendance Trend
+            <ChartBarIcon className="w-5 h-5 text-orange-500" /> {t('attendance.weeklyAttendance')}
           </h2>
           <div className="space-y-3">
             {analytics?.attendance?.weekly_trend?.map((day, index) => (
@@ -240,8 +245,7 @@ export default function DashboardPage() {
         {/* Monthly Revenue Chart */}
         <div className="bg-white border border-gray-200 p-6 rounded-2xl shadow-sm">
           <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-            <ArrowTrendingUpIcon className="w-5 h-5 text-orange-500" /> Revenue
-            Trend (6 Months)
+            <ArrowTrendingUpIcon className="w-5 h-5 text-orange-500" /> {t('dashboard.monthlyTrends')}
           </h2>
           <div className="space-y-3">
             {analytics?.payments?.monthly_trend?.map((month, index) => (
@@ -271,7 +275,7 @@ export default function DashboardPage() {
         {/* Quick Actions */}
         <div className="bg-white border border-gray-200 p-6 rounded-2xl shadow-sm">
           <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-            <BoltIcon className="w-5 h-5 text-orange-500" /> Quick Actions
+            <BoltIcon className="w-5 h-5 text-orange-500" /> {t('dashboard.quickStats')}
           </h2>
           <div className="space-y-3">
             <Link
@@ -282,8 +286,8 @@ export default function DashboardPage() {
                 <UserIcon className="w-5 h-5 text-orange-600" />
               </div>
               <div>
-                <p className="text-sm font-medium text-gray-900">Add Member</p>
-                <p className="text-xs text-gray-500">Register new member</p>
+                <p className="text-sm font-medium text-gray-900">{t('members.addMember')}</p>
+                <p className="text-xs text-gray-500">{t('members.memberList')}</p>
               </div>
             </Link>
             <Link
@@ -295,9 +299,9 @@ export default function DashboardPage() {
               </div>
               <div>
                 <p className="text-sm font-medium text-gray-900">
-                  Check In Member
+                  {t('attendance.checkIn')}
                 </p>
-                <p className="text-xs text-gray-500">Record attendance</p>
+                <p className="text-xs text-gray-500">{t('attendance.attendanceHistory')}</p>
               </div>
             </Link>
             <Link
@@ -309,9 +313,9 @@ export default function DashboardPage() {
               </div>
               <div>
                 <p className="text-sm font-medium text-gray-900">
-                  Record Payment
+                  {t('payments.addPayment')}
                 </p>
-                <p className="text-xs text-gray-500">Add payment entry</p>
+                <p className="text-xs text-gray-500">{t('payments.paymentHistory')}</p>
               </div>
             </Link>
             <Link
@@ -322,8 +326,8 @@ export default function DashboardPage() {
                 <CreditCardIcon className="w-5 h-5 text-orange-600" />
               </div>
               <div>
-                <p className="text-sm font-medium text-gray-900">Create Plan</p>
-                <p className="text-xs text-gray-500">New membership plan</p>
+                <p className="text-sm font-medium text-gray-900">{t('plans.addPlan')}</p>
+                <p className="text-xs text-gray-500">{t('plans.planDetails')}</p>
               </div>
             </Link>
           </div>
@@ -333,13 +337,13 @@ export default function DashboardPage() {
         <div className="bg-white border border-gray-200 p-6 rounded-2xl shadow-sm">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-              <ClockIcon className="w-5 h-5" /> Pending Payments
+              <ClockIcon className="w-5 h-5" /> {t('dashboard.pendingPayments')}
             </h2>
             <Link
               to="/payments?status=Pending"
               className="text-xs text-orange-600 hover:text-orange-700 font-medium"
             >
-              View All
+              {t('dashboard.viewAll')}
             </Link>
           </div>
           {analytics?.payments?.pending_count > 0 ? (
@@ -348,7 +352,7 @@ export default function DashboardPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-semibold text-yellow-800">
-                      {analytics.payments.pending_count} Pending Payments
+                      {analytics.payments.pending_count} {t('dashboard.pendingPayments')}
                     </p>
                     <p className="text-xs text-yellow-600">
                       Total: {formatCurrency(analytics.payments.pending_amount)}
@@ -361,14 +365,14 @@ export default function DashboardPage() {
                 to="/payments?status=Pending"
                 className="block w-full bg-yellow-600 hover:bg-yellow-700 text-white text-center py-2 px-4 rounded-lg text-sm font-medium transition-colors"
               >
-                Manage Pending Payments
+                {t('dashboard.viewAll')}
               </Link>
             </div>
           ) : (
             <div className="text-center py-8">
               <CheckCircleIcon className="w-10 h-10 text-green-500 mx-auto mb-2" />
               <p className="text-sm text-gray-600">
-                All payments are up to date
+                {t('payments.noPaymentsFound')}
               </p>
             </div>
           )}
@@ -377,7 +381,7 @@ export default function DashboardPage() {
         {/* Recent Activity */}
         <div className="bg-white border border-gray-200 p-6 rounded-2xl shadow-sm">
           <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-            <ArrowPathIcon className="w-5 h-5" /> Recent Activity
+            <ArrowPathIcon className="w-5 h-5" /> {t('dashboard.recentMembers')}
           </h2>
           <div className="space-y-3 max-h-80 overflow-y-auto">
             {analytics?.members?.recent_members?.map((member) => (

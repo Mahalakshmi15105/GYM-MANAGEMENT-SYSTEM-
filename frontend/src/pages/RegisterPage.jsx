@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import Footer from '../components/Footer';
 import api from '../services/api';
 import { BoltIcon } from '@heroicons/react/24/outline';
 
@@ -203,6 +204,8 @@ export default function RegisterPage() {
           </div>
         </div>
       </div>
+      
+      <Footer />
     </div>
   );
 }

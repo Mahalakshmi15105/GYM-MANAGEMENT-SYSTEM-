@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import Footer from '../components/Footer';
 import api from '../services/api';
 import { 
   HeartIcon, 
@@ -255,16 +256,7 @@ export default function LandingPage() {
         </section>
       </main>
 
-      {/* Footer */}
-      <footer className="border-t border-gray-200 py-12 bg-white text-gray-500 text-sm text-center w-full">
-        <div className="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-12 xl:px-16 flex flex-col md:flex-row items-center justify-between gap-4 w-full">
-          <div className="flex items-center gap-2">
-            <HeartIcon className="w-5 h-5 text-orange-600" />
-            <span className="font-semibold text-gray-600 text-sm sm:text-base">FlexiGym SaaS</span>
-          </div>
-          <p className="text-xs sm:text-sm">© {new Date().getFullYear()} FlexiGym. All rights reserved.</p>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }

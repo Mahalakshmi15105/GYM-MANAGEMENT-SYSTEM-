@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import Footer from '../components/Footer';
 import api from '../services/api';
-import { BoltIcon } from '@heroicons/react/24/outline';
+import { BoltIcon, EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -10,6 +11,7 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [markingAttendance, setMarkingAttendance] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   
   const { login } = useAuth();
   const navigate = useNavigate();
@@ -65,15 +67,8 @@ export default function LoginPage() {
       } else if (user.role === 'gym_owner') {
         navigate('/dashboard');
       } else if (user.role === 'member') {
-        // Check if this is first time login for password change
-        if (user.first_time_login) {
-          // Preserve gym param if exists
-          const redirectPath = gymParam 
-            ? `/member/change-password?gym=${gymParam}`
-            : '/member/change-password';
-          navigate(redirectPath);
-        } else if (gymParam) {
-          // Mark attendance automatically if gym param exists
+        // Mark attendance automatically if gym param exists
+        if (gymParam) {
           const attendanceResult = await markAttendance(gymParam);
           
           if (attendanceResult.success) {
@@ -101,10 +96,30 @@ export default function LoginPage() {
       }
     } catch (err) {
       console.error(err);
-      setError(
-        err.response?.data?.error || 
-        'Failed to connect. Please ensure your backend server and MySQL database are running.'
-      );
+      // Improved error handling to differentiate between error types
+      if (err.response) {
+        // Server responded with error status
+        const status = err.response.status;
+        const serverError = err.response.data?.error;
+        
+        if (status === 401) {
+          setError('Invalid email or password');
+        } else if (status === 403) {
+          setError(serverError || 'Account is disabled or suspended. Please contact support.');
+        } else if (status === 404) {
+          setError('Account not found');
+        } else if (status === 500) {
+          setError('Server error. Please try again later.');
+        } else {
+          setError(serverError || 'Login failed. Please try again.');
+        }
+      } else if (err.request) {
+        // Request was made but no response received (network error)
+        setError('Failed to connect. Please ensure your backend server and MySQL database are running.');
+      } else {
+        // Something else happened
+        setError('An unexpected error occurred. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -163,16 +178,31 @@ export default function LoginPage() {
                   Password
                 </label>
               </div>
-              <input
-                type="password"
-                required
-                disabled={loading}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter your password"
-                autoComplete="off"
-                className="w-full bg-gray-50 border border-gray-200 focus:border-orange-400 focus:bg-white rounded-xl px-4 py-3 text-sm text-gray-900 placeholder-gray-500 focus:outline-none transition-all duration-200"
-              />
+              <div className="relative">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  required
+                  disabled={loading}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter your password"
+                  autoComplete="off"
+                  className="w-full bg-gray-50 border border-gray-200 focus:border-orange-400 focus:bg-white rounded-xl px-4 py-3 pr-12 text-sm text-gray-900 placeholder-gray-500 focus:outline-none transition-all duration-200"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  disabled={loading}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed z-10"
+                  tabIndex={-1}
+                >
+                  {showPassword ? (
+                    <EyeSlashIcon className="w-5 h-5" />
+                  ) : (
+                    <EyeIcon className="w-5 h-5" />
+                  )}
+                </button>
+              </div>
             </div>
 
             <button
@@ -202,6 +232,8 @@ export default function LoginPage() {
           </div>
         </div>
       </div>
+      
+      <Footer />
     </div>
   );
 }

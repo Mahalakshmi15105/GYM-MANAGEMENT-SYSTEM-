@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useTranslation } from '../utils/i18n';
 import api from '../services/api';
 import { PlusIcon, KeyIcon } from '@heroicons/react/24/outline';
 
 export default function MembersPage() {
     const { user } = useAuth();
+    const { t } = useTranslation(user?.gym_id);
     const [members, setMembers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
@@ -123,7 +125,7 @@ export default function MembersPage() {
         <div className="space-y-8">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900 mb-1">Members Management</h1>
+                    <h1 className="text-2xl font-bold text-gray-900 mb-1">{t('members.title')}</h1>
                     <p className="text-sm text-gray-600">
                         Manage your gym members - Gym ID: {user?.gym_id}
                     </p>
@@ -132,7 +134,7 @@ export default function MembersPage() {
                     to="/members/add"
                     className="bg-orange-600 hover:bg-orange-700 text-white font-bold px-6 py-3 rounded-xl transition-all duration-200 self-start md:self-auto text-center shadow-sm flex items-center gap-2"
                 >
-                    <PlusIcon className="w-4 h-4" /> Add Member
+                    <PlusIcon className="w-4 h-4" /> {t('members.addMember')}
                 </Link>
             </div>
 
@@ -141,7 +143,7 @@ export default function MembersPage() {
                     <div className="flex-1">
                         <input
                             type="text"
-                            placeholder="Search by name, phone, email, or member ID..."
+                            placeholder={t('members.searchMembers')}
                             value={searchQuery}
                             onChange={(e) => {
                                 setSearchQuery(e.target.value);
@@ -156,10 +158,10 @@ export default function MembersPage() {
                             onChange={(e) => setStatusFilter(e.target.value)}
                             className="bg-gray-50 border border-gray-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 rounded-xl px-4 py-3 text-sm text-gray-900 focus:outline-none transition-all duration-200"
                         >
-                            <option value="All">All Status</option>
-                            <option value="Active">Active</option>
-                            <option value="Expired">Expired</option>
-                            <option value="Inactive">Inactive</option>
+                            <option value="All">{t('common.status')}</option>
+                            <option value="Active">{t('common.active')}</option>
+                            <option value="Expired">{t('common.inactive')}</option>
+                            <option value="Inactive">{t('common.inactive')}</option>
                         </select>
                     </div>
                 </div>
@@ -174,11 +176,11 @@ export default function MembersPage() {
             <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
                 {loading ? (
                     <div className="p-8 text-center text-gray-500">
-                        Loading members...
+                        {t('common.loading')}
                     </div>
                 ) : filteredMembers.length === 0 ? (
                     <div className="p-8 text-center text-gray-500">
-                        {searchQuery ? 'No members found matching your search.' : 'No members registered yet.'}
+                        {searchQuery ? t('members.noMembersFound') : t('empty.noMembersDesc')}
                     </div>
                 ) : (
                     <div className="overflow-x-auto">
@@ -216,7 +218,7 @@ export default function MembersPage() {
                                         Status
                                     </th>
                                     <th className="text-left px-6 py-4 text-xs font-semibold uppercase tracking-wider text-gray-600">
-                                        Actions
+                                        {t('common.actions')}
                                     </th>
                                 </tr>
                             </thead>
@@ -273,34 +275,34 @@ export default function MembersPage() {
                                                     to={`/members/${member.id}`}
                                                     className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
                                                 >
-                                                    View
+                                                    {t('common.view')}
                                                 </Link>
                                                 <Link
                                                     to={`/members/${member.id}/edit`}
                                                     className="bg-orange-600 hover:bg-orange-700 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
                                                 >
-                                                    Edit
+                                                    {t('common.edit')}
                                                 </Link>
                                                 {member.status === 'Active' ? (
                                                     <button
                                                         onClick={() => setActionModal({ isOpen: true, member, action: 'deactivate' })}
                                                         className="bg-yellow-600 hover:bg-yellow-700 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
                                                     >
-                                                        Deactivate
+                                                        {t('members.suspendMember')}
                                                     </button>
                                                 ) : (
                                                     <button
                                                         onClick={() => setActionModal({ isOpen: true, member, action: 'reactivate' })}
                                                         className="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
                                                     >
-                                                        Reactivate
+                                                        {t('members.renewMembership')}
                                                     </button>
                                                 )}
                                                 <button
                                                     onClick={() => setDeleteModal({ isOpen: true, member })}
                                                     className="bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
                                                 >
-                                                    Delete
+                                                    {t('common.delete')}
                                                 </button>
                                             </div>
                                         </td>

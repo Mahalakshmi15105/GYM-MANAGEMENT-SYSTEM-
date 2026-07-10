@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { useTranslation } from "../utils/i18n";
 import api from "../services/api";
 import { useCurrency } from "../utils/currency";
 import {
@@ -14,7 +15,8 @@ import {
 
 export default function PaymentsPage() {
   const { user } = useAuth();
-  const { formatCurrency, setCurrencyCode } = useCurrency();
+  const { t } = useTranslation(user?.gym_id);
+  const { formatCurrency, setCurrencyCode } = useCurrency(user?.gym_id);
   const [payments, setPayments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -130,7 +132,7 @@ export default function PaymentsPage() {
     <div className="space-y-8">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-1">Payments</h1>
+          <h1 className="text-2xl font-bold text-gray-900 mb-1">{t('payments.title')}</h1>
           <p className="text-sm text-gray-600">
             Manage member payments - Gym ID: {user?.gym_id}
           </p>
@@ -139,7 +141,7 @@ export default function PaymentsPage() {
           to="/payments/add"
           className="bg-orange-600 hover:bg-orange-700 text-white font-bold px-6 py-3 rounded-xl transition-all duration-200 self-start md:self-auto text-center shadow-sm flex items-center gap-2"
         >
-          <PlusIcon className="w-4 h-4" /> Record Payment
+          <PlusIcon className="w-4 h-4" /> {t('payments.addPayment')}
         </Link>
       </div>
 
@@ -149,7 +151,7 @@ export default function PaymentsPage() {
           <div className="lg:col-span-2">
             <input
               type="text"
-              placeholder="Search by member, phone, transaction ID..."
+              placeholder={t('payments.searchPayments')}
               value={searchQuery}
               onChange={(e) => handleSearch(e.target.value)}
               className="w-full bg-gray-50 border border-gray-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 rounded-xl px-4 py-3 text-sm text-gray-900 placeholder-gray-500 focus:outline-none transition-all duration-200"
@@ -164,10 +166,10 @@ export default function PaymentsPage() {
               }}
               className="w-full bg-gray-50 border border-gray-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 rounded-xl px-4 py-3 text-sm text-gray-900 focus:outline-none transition-all duration-200"
             >
-              <option value="All">All Status</option>
-              <option value="Paid">Paid</option>
-              <option value="Pending">Pending</option>
-              <option value="Failed">Failed</option>
+              <option value="All">{t('common.status')}</option>
+              <option value="Paid">{t('payments.paid')}</option>
+              <option value="Pending">{t('payments.unpaid')}</option>
+              <option value="Failed">{t('payments.overdue')}</option>
             </select>
           </div>
           <div>
@@ -179,11 +181,11 @@ export default function PaymentsPage() {
               }}
               className="w-full bg-gray-50 border border-gray-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 rounded-xl px-4 py-3 text-sm text-gray-900 focus:outline-none transition-all duration-200"
             >
-              <option value="All">All Methods</option>
-              <option value="Cash">Cash</option>
-              <option value="UPI">UPI</option>
-              <option value="Card">Card</option>
-              <option value="Bank Transfer">Bank Transfer</option>
+              <option value="All">{t('common.filter')}</option>
+              <option value="Cash">{t('payments.cash')}</option>
+              <option value="UPI">{t('payments.online')}</option>
+              <option value="Card">{t('payments.card')}</option>
+              <option value="Bank Transfer">{t('payments.bank')}</option>
             </select>
           </div>
           <div>
@@ -195,7 +197,7 @@ export default function PaymentsPage() {
                 handleFilterChange();
               }}
               className="w-full bg-gray-50 border border-gray-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 rounded-xl px-4 py-3 text-sm text-gray-900 focus:outline-none transition-all duration-200"
-              placeholder="Start Date"
+              placeholder={t('reports.fromDate')}
             />
           </div>
         </div>
@@ -210,13 +212,11 @@ export default function PaymentsPage() {
       <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
         {loading ? (
           <div className="p-8 text-center text-gray-500">
-            Loading payments...
+            {t('common.loading')}
           </div>
         ) : payments.length === 0 ? (
           <div className="p-8 text-center text-gray-500">
-            {searchQuery
-              ? "No payments found matching your search."
-              : "No payments recorded yet."}
+            {searchQuery ? t('payments.noPaymentsFound') : t('empty.noPaymentsDesc')}
           </div>
         ) : (
           <div className="overflow-x-auto">

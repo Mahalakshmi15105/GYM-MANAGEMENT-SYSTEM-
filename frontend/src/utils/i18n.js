@@ -4,6 +4,11 @@ export const DEFAULT_LANGUAGE = 'en';
 export const LANGUAGE_STORAGE_KEY = 'flexigym_language';
 const LANGUAGE_CHANGE_EVENT = 'flexigym-language-change';
 
+// Get gym-specific storage key
+export function getGymLanguageKey(gymId) {
+  return gymId ? `${LANGUAGE_STORAGE_KEY}_${gymId}` : LANGUAGE_STORAGE_KEY;
+}
+
 export const SUPPORTED_LANGUAGES = [
   { code: 'en', name: 'English', nativeName: 'English' },
   { code: 'ta', name: 'Tamil', nativeName: 'தமிழ்' },
@@ -35,23 +40,25 @@ export function getLanguage(languageCode = DEFAULT_LANGUAGE) {
   return LANGUAGE_MAP[languageCode] || LANGUAGE_MAP[DEFAULT_LANGUAGE];
 }
 
-export function getStoredLanguageCode() {
+export function getStoredLanguageCode(gymId = null) {
   if (typeof window === 'undefined') {
     return DEFAULT_LANGUAGE;
   }
 
-  const storedLanguage = window.localStorage.getItem(LANGUAGE_STORAGE_KEY);
+  const storageKey = getGymLanguageKey(gymId);
+  const storedLanguage = window.localStorage.getItem(storageKey);
   return LANGUAGE_MAP[storedLanguage]?.code || DEFAULT_LANGUAGE;
 }
 
-export function setStoredLanguageCode(languageCode) {
+export function setStoredLanguageCode(languageCode, gymId = null) {
   const normalizedLanguage = LANGUAGE_MAP[languageCode]?.code || DEFAULT_LANGUAGE;
 
   if (typeof window !== 'undefined') {
-    window.localStorage.setItem(LANGUAGE_STORAGE_KEY, normalizedLanguage);
+    const storageKey = getGymLanguageKey(gymId);
+    window.localStorage.setItem(storageKey, normalizedLanguage);
     window.dispatchEvent(
       new CustomEvent(LANGUAGE_CHANGE_EVENT, {
-        detail: { languageCode: normalizedLanguage }
+        detail: { languageCode: normalizedLanguage, gymId }
       })
     );
   }
@@ -107,16 +114,20 @@ export function translate(key, languageCode = getStoredLanguageCode(), fallback 
   return fallback;
 }
 
-export function useTranslation() {
-  const [languageCode, setLanguageCode] = useState(getStoredLanguageCode());
+export function useTranslation(gymId = null) {
+  const [languageCode, setLanguageCode] = useState(getStoredLanguageCode(gymId));
 
   useEffect(() => {
     const handleLanguageChange = (event) => {
-      setLanguageCode(event.detail?.languageCode || getStoredLanguageCode());
+      // Only update if the event is for this gym or no gym specified
+      if (!gymId || event.detail?.gymId === gymId) {
+        setLanguageCode(event.detail?.languageCode || getStoredLanguageCode(gymId));
+      }
     };
 
     const handleStorageChange = (event) => {
-      if (event.key === LANGUAGE_STORAGE_KEY) {
+      const storageKey = getGymLanguageKey(gymId);
+      if (event.key === storageKey) {
         setLanguageCode(event.newValue || DEFAULT_LANGUAGE);
       }
     };
@@ -128,7 +139,7 @@ export function useTranslation() {
       window.removeEventListener(LANGUAGE_CHANGE_EVENT, handleLanguageChange);
       window.removeEventListener('storage', handleStorageChange);
     };
-  }, []);
+  }, [gymId]);
 
   const language = useMemo(() => getLanguage(languageCode), [languageCode]);
   
@@ -141,6 +152,6 @@ export function useTranslation() {
     languageName: language.name,
     languageOptions: SUPPORTED_LANGUAGES,
     t,
-    setLanguage: setStoredLanguageCode
+    setLanguage: (code) => setStoredLanguageCode(code, gymId)
   };
 }

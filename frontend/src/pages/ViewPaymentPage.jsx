@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 import api from "../services/api";
 import { useCurrency } from "../utils/currency";
 import {
@@ -17,7 +18,8 @@ import {
 export default function ViewPaymentPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { formatCurrency, setCurrencyCode } = useCurrency();
+  const { user } = useAuth();
+  const { formatCurrency, setCurrencyCode } = useCurrency(user?.gym_id);
   const [payment, setPayment] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");

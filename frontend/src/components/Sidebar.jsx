@@ -1,5 +1,6 @@
 import { NavLink } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { useTranslation } from "../utils/i18n";
 import GymLogo from "./GymLogo";
 import {
   HomeIcon,
@@ -20,9 +21,10 @@ import {
 
 export default function Sidebar({ isOpen, setIsOpen }) {
   const { user, logout, isSuperAdmin, canAccessGymManagement } = useAuth();
+  const { t } = useTranslation(user?.gym_id);
 
   // Base navigation links available to all users
-  const baseLinks = [{ name: "Dashboard", path: "/dashboard", icon: HomeIcon }];
+  const baseLinks = [{ name: t('nav.dashboard'), path: "/dashboard", icon: HomeIcon }];
 
   // Super Admin specific navigation links
   const superAdminLinks = [
@@ -44,18 +46,18 @@ export default function Sidebar({ isOpen, setIsOpen }) {
 
   // Gym management links for gym owners and super admins
   const gymManagementLinks = [
-    { name: "Members", path: "/members", icon: UsersIcon },
+    { name: t('nav.members'), path: "/members", icon: UsersIcon },
     {
-      name: "Membership Plans",
+      name: t('nav.membershipPlans'),
       path: "/membership-plans",
       icon: CreditCardIcon,
     },
-    { name: "Payments", path: "/payments", icon: CreditCardIcon },
-    { name: "Attendance", path: "/attendance", icon: CalendarIcon },
-    { name: "Reports", path: "/reports", icon: ChartBarIcon },
-    { name: "Trainers & Plans", path: "/plans", icon: HeartIcon },
-    { name: "Gym Profile", path: "/gym-profile", icon: BuildingOffice2Icon },
-    { name: "Settings", path: "/settings", icon: Cog6ToothIcon },
+    { name: t('nav.payments'), path: "/payments", icon: CreditCardIcon },
+    { name: t('nav.attendance'), path: "/attendance", icon: CalendarIcon },
+    { name: t('nav.reports'), path: "/reports", icon: ChartBarIcon },
+    { name: t('nav.trainersPlans'), path: "/plans", icon: HeartIcon },
+    { name: t('nav.gymProfile'), path: "/gym-profile", icon: BuildingOffice2Icon },
+    { name: t('nav.settings'), path: "/settings", icon: Cog6ToothIcon },
   ];
 
   // Build navigation links based on user role
@@ -202,7 +204,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
             onClick={logout}
             className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold bg-gray-200 hover:bg-red-50 hover:text-red-600 border border-gray-200 hover:border-red-200 transition-all duration-200"
           >
-            <ArrowRightOnRectangleIcon className="w-4 h-4" /> Log Out
+            <ArrowRightOnRectangleIcon className="w-4 h-4" /> {t('nav.logout')}
           </button>
         </div>
       </aside>
