@@ -34,6 +34,8 @@ const SuperAdminDashboard = () => {
 
   // Fetch all dashboard data
   useEffect(() => {
+    // Force platform currency to INR for Super Admin
+    setCurrencyCode('INR');
     fetchDashboardData();
     
     // Auto-refresh every 5 minutes

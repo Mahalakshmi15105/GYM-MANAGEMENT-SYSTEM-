@@ -97,20 +97,24 @@ export default function Sidebar({ isOpen, setIsOpen }) {
             {user ? (
               <>
                 {!isSuperAdmin ? (
-                  <GymLogo className="w-8 h-8" />
+                  <GymLogo 
+                    className="w-10 h-10" 
+                    showGymName={true}
+                    gymNameClassName="text-sm font-medium text-gray-900"
+                  />
                 ) : (
-                  <ShieldCheckIcon className="w-8 h-8 text-red-600" />
+                  <div className="flex items-center gap-3">
+                    <ShieldCheckIcon className="w-10 h-10 text-red-600" />
+                    <div className="flex flex-col">
+                      <span className="text-lg font-bold text-orange-500">
+                        FlexiGym
+                      </span>
+                      <span className="text-xs text-gray-600 font-medium">
+                        Platform Administration
+                      </span>
+                    </div>
+                  </div>
                 )}
-                <div className="flex flex-col">
-                  <span className="text-lg font-bold text-orange-500">
-                    FlexiGym
-                  </span>
-                  <span className="text-xs text-gray-600 font-medium">
-                    {isSuperAdmin
-                      ? "Platform Administration"
-                      : user.gym_name || `Gym #${user.gym_id}`}
-                  </span>
-                </div>
               </>
             ) : (
               <>

@@ -33,7 +33,7 @@ export default function EditPaymentPage() {
   const fetchPayment = async () => {
     try {
       const response = await api.get(`/api/payments/${id}`);
-      const payment = response.data;
+      const payment = response.data.payment;
       
       setFormData({
         member_id: payment.member_id.toString(),

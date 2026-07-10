@@ -34,7 +34,7 @@ export default function EditMemberPage() {
   const fetchMember = async () => {
     try {
       const response = await api.get(`/api/members/${id}`);
-      const member = response.data;
+      const member = response.data.member;
       
       // Format dates for input fields
       setFormData({
@@ -59,14 +59,14 @@ export default function EditMemberPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // Validation
-    if (!formData.first_name || !formData.phone || !formData.email || !formData.membership_start_date || !formData.membership_end_date) {
-      setError('Please fill in all required fields.');
+    // Validation - only required fields
+    if (!formData.first_name || !formData.phone) {
+      setError('First name and phone are required.');
       return;
     }
 
-    // Email validation
-    if (!/\S+@\S+\.\S+/.test(formData.email)) {
+    // Email validation (only if email is provided)
+    if (formData.email && !/\S+@\S+\.\S+/.test(formData.email)) {
       setError('Please enter a valid email address.');
       return;
     }
@@ -87,7 +87,9 @@ export default function EditMemberPage() {
         delete updateData.password;
       }
       
-      await api.put(`/api/members/${id}`, updateData);
+      const response = await api.put(`/api/members/${id}`, updateData);
+      
+      // Show success and navigate
       navigate(`/members/${id}`);
     } catch (err) {
       console.error(err);

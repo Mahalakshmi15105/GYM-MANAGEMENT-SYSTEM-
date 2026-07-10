@@ -5,7 +5,7 @@ from flask_jwt_extended import get_jwt, jwt_required
 from sqlalchemy import asc, desc, func, or_
 
 from app.extensions import db
-from app.models import Attendance, Member, MembershipPlan, Payment
+from app.models import Attendance, Member, MembershipPlan, Payment, Gym
 from app.currency_utils import get_gym_currency
 
 
@@ -307,6 +307,12 @@ def get_reports():
     if not gym_id:
         return jsonify({'error': 'Gym ID not found in token'}), 400
 
+    # Fetch gym information for branding
+    gym = Gym.query.filter_by(id=gym_id).first()
+    logo_url = None
+    if gym and gym.logo:
+        logo_url = f"/static/{gym.logo}"
+
     search_query = request.args.get('q', '').strip()
     member_id = request.args.get('member_id', type=int)
     report_type = request.args.get('report_type', 'all')
@@ -400,6 +406,10 @@ def get_reports():
 
     return jsonify({
         'currency': get_gym_currency(gym_id),
+        'gym': {
+            'name': gym.name if gym else 'FlexiGym',
+            'logo_url': logo_url
+        },
         'summary': summary,
         'filters': {
             'q': search_query,

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { useTranslation } from '../utils/i18n';
 import { useCurrency } from '../utils/currency';
@@ -9,10 +10,12 @@ import {
   LanguageIcon,
   CheckCircleIcon,
   ExclamationCircleIcon,
+  QrCodeIcon,
 } from '@heroicons/react/24/outline';
 
 export default function GymOwnerSettingsPage() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const { t, languageOptions, setLanguage } = useTranslation();
   const { formatCurrency, currencyOptions, setCurrencyCode } = useCurrency();
   
@@ -141,31 +144,25 @@ export default function GymOwnerSettingsPage() {
         
         <div className="space-y-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-3">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
               Select your preferred currency
             </label>
             <p className="text-sm text-gray-600 mb-4">
               This currency will be used across your gym management system including membership plans, payments, reports, and receipts.
             </p>
             
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+            <select
+              value={gymData?.currency || 'INR'}
+              onChange={(e) => handleCurrencyUpdate(e.target.value)}
+              disabled={updating}
+              className="w-full max-w-md bg-gray-50 border border-gray-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 rounded-lg px-4 py-3 text-sm text-gray-900 focus:outline-none transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
               {currencyOptions.map((currency) => (
-                <button
-                  key={currency.code}
-                  onClick={() => handleCurrencyUpdate(currency.code)}
-                  disabled={updating}
-                  className={`p-3 rounded-lg border-2 text-left transition-all duration-200 ${
-                    gymData?.currency === currency.code
-                      ? 'border-orange-500 bg-orange-50 text-orange-900'
-                      : 'border-gray-200 bg-white text-gray-700 hover:border-orange-300 hover:bg-orange-50'
-                  } ${updating ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-                >
-                  <div className="font-semibold text-sm">{currency.code}</div>
-                  <div className="text-xs text-gray-600">{currency.symbol}</div>
-                  <div className="text-xs text-gray-500 mt-1">{currency.label}</div>
-                </button>
+                <option key={currency.code} value={currency.code}>
+                  {currency.code} - {currency.label} ({currency.symbol})
+                </option>
               ))}
-            </div>
+            </select>
             
             <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
               <p className="text-sm text-blue-900">
@@ -186,32 +183,26 @@ export default function GymOwnerSettingsPage() {
         </h2>
         
         <div className="space-y-6">
-          <div className="languageSettings">
-            <label className="block text-sm font-medium text-gray-700 mb-3">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
               Select your preferred language
             </label>
             <p className="text-sm text-gray-600 mb-4">
               This language will be used for the interface, reports, and all gym management features.
             </p>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            <select
+              value={gymData?.language || 'en'}
+              onChange={(e) => handleLanguageUpdate(e.target.value)}
+              disabled={updating}
+              className="w-full max-w-md bg-gray-50 border border-gray-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 rounded-lg px-4 py-3 text-sm text-gray-900 focus:outline-none transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
               {languageOptions.map((language) => (
-                <button
-                  key={language.code}
-                  onClick={() => handleLanguageUpdate(language.code)}
-                  disabled={updating}
-                  className={`p-4 rounded-lg border-2 text-left transition-all duration-200 ${
-                    gymData?.language === language.code
-                      ? 'border-orange-500 bg-orange-50 text-orange-900'
-                      : 'border-gray-200 bg-white text-gray-700 hover:border-orange-300 hover:bg-orange-50'
-                  } ${updating ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-                >
-                  <div className="font-semibold text-sm">{language.name}</div>
-                  <div className="text-sm text-gray-600 mt-1">{language.nativeName}</div>
-                  <div className="text-xs text-gray-500 mt-1 uppercase">{language.code}</div>
-                </button>
+                <option key={language.code} value={language.code}>
+                  {language.name} ({language.nativeName})
+                </option>
               ))}
-            </div>
+            </select>
             
             <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
               <p className="text-sm text-blue-900">
@@ -222,6 +213,37 @@ export default function GymOwnerSettingsPage() {
                 Language Code: {gymData?.language || 'en'}
               </p>
             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Attendance QR Code Section */}
+      <div className="bg-white border border-gray-200 p-6 rounded-2xl shadow-sm">
+        <h2 className="text-lg font-bold text-gray-900 mb-6 flex items-center gap-2">
+          <QrCodeIcon className="w-5 h-5 text-orange-500" /> Attendance QR Code
+        </h2>
+        
+        <div className="space-y-4">
+          <p className="text-sm text-gray-600">
+            Manage your gym's attendance QR code. Members scan this code to check in at your gym.
+          </p>
+          
+          <button
+            onClick={() => navigate('/gym-qr')}
+            className="bg-orange-600 hover:bg-orange-700 text-white font-medium py-3 px-6 rounded-xl transition-colors"
+          >
+            Manage QR Code
+          </button>
+          
+          <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <p className="text-sm text-blue-900">
+              <span className="font-medium">Status:</span> {gymData?.attendance_qr ? 'QR Code Active' : 'No QR Code Generated'}
+            </p>
+            {gymData?.attendance_qr && (
+              <p className="text-sm text-blue-700 mt-1">
+                QR Code: <span className="font-mono">{gymData.attendance_qr}</span>
+              </p>
+            )}
           </div>
         </div>
       </div>

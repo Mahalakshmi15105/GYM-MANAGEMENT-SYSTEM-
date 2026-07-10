@@ -12,6 +12,8 @@ export default function MembersPage() {
     const [searchQuery, setSearchQuery] = useState('');
     const [statusFilter, setStatusFilter] = useState('All');
     const [deleteModal, setDeleteModal] = useState({ isOpen: false, member: null });
+    const [actionModal, setActionModal] = useState({ isOpen: false, member: null, action: null });
+    const [actionLoading, setActionLoading] = useState(false);
 
     useEffect(() => {
         fetchMembers();
@@ -45,13 +47,48 @@ export default function MembersPage() {
     };
 
     const handleDelete = async (memberId) => {
+        setActionLoading(true);
         try {
             await api.delete(`/api/members/${memberId}`);
             setMembers(members.filter(m => m.id !== memberId));
             setDeleteModal({ isOpen: false, member: null });
         } catch (err) {
             console.error(err);
-            setError(err.response?.data?.error || 'Failed to delete member');
+            const errorMsg = err.response?.data?.message || err.response?.data?.error || 'Failed to delete member';
+            setError(errorMsg);
+            setDeleteModal({ isOpen: false, member: null });
+        } finally {
+            setActionLoading(false);
+        }
+    };
+
+    const handleDeactivate = async (memberId) => {
+        setActionLoading(true);
+        try {
+            await api.post(`/api/members/${memberId}/deactivate`);
+            // Refresh members list
+            await fetchMembers();
+            setActionModal({ isOpen: false, member: null, action: null });
+        } catch (err) {
+            console.error(err);
+            setError(err.response?.data?.error || 'Failed to deactivate member');
+        } finally {
+            setActionLoading(false);
+        }
+    };
+
+    const handleReactivate = async (memberId) => {
+        setActionLoading(true);
+        try {
+            await api.post(`/api/members/${memberId}/reactivate`);
+            // Refresh members list
+            await fetchMembers();
+            setActionModal({ isOpen: false, member: null, action: null });
+        } catch (err) {
+            console.error(err);
+            setError(err.response?.data?.error || 'Failed to reactivate member');
+        } finally {
+            setActionLoading(false);
         }
     };
 
@@ -244,6 +281,21 @@ export default function MembersPage() {
                                                 >
                                                     Edit
                                                 </Link>
+                                                {member.status === 'Active' ? (
+                                                    <button
+                                                        onClick={() => setActionModal({ isOpen: true, member, action: 'deactivate' })}
+                                                        className="bg-yellow-600 hover:bg-yellow-700 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
+                                                    >
+                                                        Deactivate
+                                                    </button>
+                                                ) : (
+                                                    <button
+                                                        onClick={() => setActionModal({ isOpen: true, member, action: 'reactivate' })}
+                                                        className="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
+                                                    >
+                                                        Reactivate
+                                                    </button>
+                                                )}
                                                 <button
                                                     onClick={() => setDeleteModal({ isOpen: true, member })}
                                                     className="bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
@@ -270,12 +322,51 @@ export default function MembersPage() {
                         <div className="flex gap-3">
                             <button
                                 onClick={() => handleDelete(deleteModal.member.id)}
-                                className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-xl text-sm font-medium transition-colors"
+                                disabled={actionLoading}
+                                className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-xl text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             >
-                                Delete
+                                {actionLoading ? 'Deleting...' : 'Delete'}
                             </button>
                             <button
                                 onClick={() => setDeleteModal({ isOpen: false, member: null })}
+                                className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-xl text-sm font-medium transition-colors"
+                            >
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {actionModal.isOpen && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="bg-white border border-gray-200 rounded-2xl p-6 max-w-md w-full shadow-lg">
+                        <h3 className="text-lg font-bold text-gray-900 mb-2">
+                            {actionModal.action === 'deactivate' ? 'Deactivate Member' : 'Reactivate Member'}
+                        </h3>
+                        <p className="text-sm text-gray-600 mb-6">
+                            {actionModal.action === 'deactivate' 
+                                ? `Are you sure you want to deactivate <strong className="text-gray-900">${actionModal.member?.first_name} ${actionModal.member?.last_name}</strong>? They will not be able to log in, but all historical data will be preserved.`
+                                : `Are you sure you want to reactivate <strong className="text-gray-900">${actionModal.member?.first_name} ${actionModal.member?.last_name}</strong>? They will be able to log in again.`
+                            }
+                        </p>
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => actionModal.action === 'deactivate' ? handleDeactivate(actionModal.member.id) : handleReactivate(actionModal.member.id)}
+                                disabled={actionLoading}
+                                className={`${
+                                    actionModal.action === 'deactivate' 
+                                        ? 'bg-yellow-600 hover:bg-yellow-700' 
+                                        : 'bg-green-600 hover:bg-green-700'
+                                } text-white px-4 py-2 rounded-xl text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed`}
+                            >
+                                {actionLoading 
+                                    ? (actionModal.action === 'deactivate' ? 'Deactivating...' : 'Reactivating...')
+                                    : (actionModal.action === 'deactivate' ? 'Deactivate' : 'Reactivate')
+                                }
+                            </button>
+                            <button
+                                onClick={() => setActionModal({ isOpen: false, member: null, action: null })}
                                 className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-xl text-sm font-medium transition-colors"
                             >
                                 Cancel

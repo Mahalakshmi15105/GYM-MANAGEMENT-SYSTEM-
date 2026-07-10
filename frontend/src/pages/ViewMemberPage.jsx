@@ -18,6 +18,7 @@ export default function ViewMemberPage() {
   const [member, setMember] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [actionLoading, setActionLoading] = useState(false);
 
   useEffect(() => {
     fetchMember();
@@ -26,12 +27,72 @@ export default function ViewMemberPage() {
   const fetchMember = async () => {
     try {
       const response = await api.get(`/api/members/${id}`);
-      setMember(response.data);
+      setMember(response.data.member);
     } catch (err) {
       console.error(err);
       setError(err.response?.data?.error || 'Failed to fetch member details');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDeactivate = async () => {
+    if (!window.confirm('Are you sure you want to deactivate this member? They will not be able to log in, but all historical data will be preserved.')) {
+      return;
+    }
+
+    setActionLoading(true);
+    setError('');
+
+    try {
+      await api.post(`/api/members/${id}/deactivate`);
+      // Refresh member data
+      await fetchMember();
+    } catch (err) {
+      console.error(err);
+      setError(err.response?.data?.error || 'Failed to deactivate member');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleReactivate = async () => {
+    if (!window.confirm('Are you sure you want to reactivate this member? They will be able to log in again.')) {
+      return;
+    }
+
+    setActionLoading(true);
+    setError('');
+
+    try {
+      await api.post(`/api/members/${id}/reactivate`);
+      // Refresh member data
+      await fetchMember();
+    } catch (err) {
+      console.error(err);
+      setError(err.response?.data?.error || 'Failed to reactivate member');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!window.confirm('Are you sure you want to permanently delete this member? This action cannot be undone.')) {
+      return;
+    }
+
+    setActionLoading(true);
+    setError('');
+
+    try {
+      await api.delete(`/api/members/${id}`);
+      navigate('/members');
+    } catch (err) {
+      console.error(err);
+      const errorMsg = err.response?.data?.message || err.response?.data?.error || 'Failed to delete member';
+      setError(errorMsg);
+    } finally {
+      setActionLoading(false);
     }
   };
 
@@ -99,6 +160,30 @@ export default function ViewMemberPage() {
             className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-xl text-sm font-medium transition-colors"
           >
             Edit Member
+          </button>
+          {member.status === 'Active' ? (
+            <button
+              onClick={handleDeactivate}
+              disabled={actionLoading}
+              className="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-xl text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {actionLoading ? 'Deactivating...' : 'Deactivate Member'}
+            </button>
+          ) : (
+            <button
+              onClick={handleReactivate}
+              disabled={actionLoading}
+              className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-xl text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {actionLoading ? 'Reactivating...' : 'Reactivate Member'}
+            </button>
+          )}
+          <button
+            onClick={handleDelete}
+            disabled={actionLoading}
+            className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-xl text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {actionLoading ? 'Deleting...' : 'Delete Member'}
           </button>
           <button
             onClick={() => navigate('/members')}

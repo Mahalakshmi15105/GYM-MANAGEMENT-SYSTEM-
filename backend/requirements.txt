@@ -5,3 +5,5 @@ Flask-Bcrypt==1.0.1
 Flask-CORS==4.0.1
 PyMySQL==1.1.1
 python-dotenv==1.0.1
+qrcode==7.4.2
+Pillow==10.4.0

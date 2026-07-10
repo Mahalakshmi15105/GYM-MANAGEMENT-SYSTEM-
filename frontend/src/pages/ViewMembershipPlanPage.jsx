@@ -24,7 +24,7 @@ export default function ViewMembershipPlanPage() {
   const fetchPlan = async () => {
     try {
       const response = await api.get(`/api/membership-plans/${id}`);
-      setPlan(response.data);
+      setPlan(response.data.membership_plan);
     } catch (err) {
       console.error(err);
       setError(err.response?.data?.error || 'Failed to fetch membership plan details');

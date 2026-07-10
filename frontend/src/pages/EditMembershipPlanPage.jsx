@@ -24,7 +24,7 @@ export default function EditMembershipPlanPage() {
   const fetchPlan = async () => {
     try {
       const response = await api.get(`/api/membership-plans/${id}`);
-      const plan = response.data;
+      const plan = response.data.membership_plan;
       
       setFormData({
         plan_name: plan.plan_name,

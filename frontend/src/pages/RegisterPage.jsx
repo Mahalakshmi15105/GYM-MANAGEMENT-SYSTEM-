@@ -48,11 +48,11 @@ export default function RegisterPage() {
       login(token, user);
       navigate('/dashboard');
     } catch (err) {
-      console.error(err);
-      setError(
-        err.response?.data?.error || 
-        'Registration failed. Please verify MySQL database connectivity and try again.'
-      );
+      console.error('Registration error:', err);
+      console.error('Error response:', err.response?.data);
+      const errorMessage = err.response?.data?.message || err.response?.data?.error || 'Registration failed. Please verify MySQL database connectivity and try again.';
+      const errorDetails = err.response?.data?.details;
+      setError(errorDetails ? `${errorMessage}\n\nDetails: ${errorDetails}` : errorMessage);
     } finally {
       setLoading(false);
     }

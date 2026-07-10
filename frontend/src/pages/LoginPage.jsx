@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import { BoltIcon } from '@heroicons/react/24/outline';
@@ -9,9 +9,12 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [markingAttendance, setMarkingAttendance] = useState(false);
   
   const { login } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const gymParam = searchParams.get('gym');
 
   // Ensure fields are always empty when component mounts
   useEffect(() => {
@@ -19,6 +22,25 @@ export default function LoginPage() {
     setPassword('');
     setError('');
   }, []);
+
+  const markAttendance = async (qrCode) => {
+    setMarkingAttendance(true);
+    try {
+      // Send the full URL since QR now encodes a URL
+      const frontendUrl = window.location.origin;
+      const fullQrUrl = `${frontendUrl}/login?gym=${qrCode}`;
+      const response = await api.post('/api/attendance/qr-checkin', { qr_code: fullQrUrl });
+      return { success: true, data: response.data };
+    } catch (err) {
+      console.error('Attendance marking failed:', err);
+      return { 
+        success: false, 
+        error: err.response?.data?.error || 'Failed to mark attendance' 
+      };
+    } finally {
+      setMarkingAttendance(false);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -45,7 +67,31 @@ export default function LoginPage() {
       } else if (user.role === 'member') {
         // Check if this is first time login for password change
         if (user.first_time_login) {
-          navigate('/member/change-password');
+          // Preserve gym param if exists
+          const redirectPath = gymParam 
+            ? `/member/change-password?gym=${gymParam}`
+            : '/member/change-password';
+          navigate(redirectPath);
+        } else if (gymParam) {
+          // Mark attendance automatically if gym param exists
+          const attendanceResult = await markAttendance(gymParam);
+          
+          if (attendanceResult.success) {
+            // Navigate to dashboard with success message
+            navigate('/member/dashboard', { 
+              state: { 
+                attendanceSuccess: true,
+                attendanceData: attendanceResult.data.attendance 
+              } 
+            });
+          } else {
+            // Navigate to dashboard with error message
+            navigate('/member/dashboard', { 
+              state: { 
+                attendanceError: attendanceResult.error 
+              } 
+            });
+          }
         } else {
           navigate('/member/dashboard');
         }

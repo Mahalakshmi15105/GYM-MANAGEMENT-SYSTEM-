@@ -39,6 +39,7 @@ import GymOwnerSettingsPage from "../pages/GymOwnerSettingsPage";
 import ReportsPage from "../pages/ReportsPage";
 import MemberDashboard from "../pages/MemberDashboard";
 import MemberChangePassword from "../pages/MemberChangePassword";
+import GymQRPage from "../pages/GymQRPage";
 
 // Prevents logged-in users from accessing landing/login/register pages.
 function PublicOnlyRoute({ children }) {
@@ -318,7 +319,33 @@ export default function AppRoutes() {
             </GymOwnerRoute>
           }
         />
+        <Route
+          path="gym-qr"
+          element={
+            <GymOwnerRoute>
+              <GymQRPage />
+            </GymOwnerRoute>
+          }
+        />
       </Route>
+
+      {/* Member Routes - Separate from Layout */}
+      <Route
+        path="/member/dashboard"
+        element={
+          <MemberRoute>
+            <MemberDashboard />
+          </MemberRoute>
+        }
+      />
+      <Route
+        path="/member/change-password"
+        element={
+          <MemberRoute>
+            <MemberChangePassword />
+          </MemberRoute>
+        }
+      />
 
       {/* Catch-all redirect */}
       <Route path="*" element={<Navigate to="/" replace />} />

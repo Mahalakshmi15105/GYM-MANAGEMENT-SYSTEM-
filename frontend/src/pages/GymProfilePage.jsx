@@ -32,7 +32,8 @@ export default function GymProfilePage() {
       const response = await api.get('/api/gym/profile');
       setGymInfo(response.data);
       if (response.data.logo_url) {
-        setLogoPreview(response.data.logo_url);
+        const baseURL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+        setLogoPreview(`${baseURL}${response.data.logo_url}`);
       }
     } catch (err) {
       console.error('Failed to fetch gym info:', err);
@@ -86,8 +87,13 @@ export default function GymProfilePage() {
       });
 
       setSuccess('Logo uploaded successfully!');
-      setGymInfo(response.data);
-      setLogoPreview(response.data.logo_url);
+      
+      // Build full URL for logo preview
+      const baseURL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+      setLogoPreview(`${baseURL}${response.data.logo_url}`);
+      
+      // Refresh gym info to get latest data
+      await fetchGymInfo();
       
       // Clear success message after 3 seconds
       setTimeout(() => setSuccess(''), 3000);
@@ -97,7 +103,8 @@ export default function GymProfilePage() {
       setError(err.response?.data?.error || 'Failed to upload logo');
       // Reset preview on error
       if (gymInfo?.logo_url) {
-        setLogoPreview(gymInfo.logo_url);
+        const baseURL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+        setLogoPreview(`${baseURL}${gymInfo.logo_url}`);
       } else {
         setLogoPreview(null);
       }

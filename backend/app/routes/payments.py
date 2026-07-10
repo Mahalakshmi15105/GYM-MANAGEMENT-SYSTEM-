@@ -197,12 +197,23 @@ def get_payment(payment_id):
     if not payment:
         return jsonify({'error': 'Payment not found'}), 404
     
+    # Get membership plan name if plan_id exists
+    membership_plan_name = None
+    if payment.membership_plan_id:
+        membership_plan = MembershipPlan.query.filter_by(id=payment.membership_plan_id, gym_id=gym_id).first()
+        if membership_plan:
+            membership_plan_name = membership_plan.plan_name
+    
+    # Build payment dict with additional info
+    payment_dict = payment.to_dict()
+    payment_dict['membership_plan_name'] = membership_plan_name
+    
     # Log the view operation
     member_name = f"{payment.member.first_name} {payment.member.last_name}".strip() if payment.member else "Unknown Member"
     ActivityLogger.log_view('payment', payment_id, entity_name=f"Payment for {member_name}", gym_id=gym_id)
     
     return jsonify({
-        'payment': payment.to_dict(),
+        'payment': payment_dict,
         'currency': get_gym_currency(gym_id)
     }), 200
 
@@ -424,10 +435,16 @@ def generate_receipt(payment_id):
     if not payment:
         return jsonify({'error': 'Payment not found'}), 404
     
+    # Build logo URL if gym has logo
+    logo_url = None
+    if payment.gym and payment.gym.logo:
+        logo_url = f"/static/{payment.gym.logo}"
+    
     receipt_data = {
         'receipt_number': f"RCP{payment.id:06d}",
         'payment': payment.to_dict(),
         'gym_name': payment.gym.name if payment.gym else 'FlexiGym',
+        'logo_url': logo_url,
         'currency': get_gym_currency(gym_id),
         'generated_at': datetime.utcnow().isoformat()
     }

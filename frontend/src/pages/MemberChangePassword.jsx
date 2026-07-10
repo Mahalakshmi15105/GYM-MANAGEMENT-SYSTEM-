@@ -1,24 +1,46 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import { KeyIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
 
 export default function MemberChangePassword() {
-  const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [markingAttendance, setMarkingAttendance] = useState(false);
   
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const gymParam = searchParams.get('gym');
+
+  const markAttendance = async (qrCode) => {
+    setMarkingAttendance(true);
+    try {
+      // Send the full URL since QR now encodes a URL
+      const frontendUrl = window.location.origin;
+      const fullQrUrl = `${frontendUrl}/login?gym=${qrCode}`;
+      const response = await api.post('/api/attendance/qr-checkin', { qr_code: fullQrUrl });
+      return { success: true, data: response.data };
+    } catch (err) {
+      console.error('Attendance marking failed:', err);
+      return { 
+        success: false, 
+        error: err.response?.data?.error || 'Failed to mark attendance' 
+      };
+    } finally {
+      setMarkingAttendance(false);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!currentPassword || !newPassword || !confirmPassword) {
-      setError('Please fill in all fields.');
+    // For first-time setup, only require new password
+    if (!newPassword || !confirmPassword) {
+      setError('Please fill in all required fields.');
       return;
     }
 
@@ -36,20 +58,32 @@ export default function MemberChangePassword() {
     setError('');
 
     try {
-      // First verify current password by attempting login
-      await api.post('/api/auth/login', { 
-        email: user.email, 
-        password: currentPassword 
-      });
-      
-      // Update member password
+      // Update member password directly (member is already authenticated)
       await api.put(`/api/members/${user.member_id}`, {
         password: newPassword
       });
 
-      // Show success and redirect to dashboard
-      alert('Password changed successfully! You can now access your dashboard.');
-      navigate('/member/dashboard');
+      // After password change, mark attendance if gym param exists
+      if (gymParam) {
+        const attendanceResult = await markAttendance(gymParam);
+        
+        if (attendanceResult.success) {
+          navigate('/member/dashboard', { 
+            state: { 
+              attendanceSuccess: true,
+              attendanceData: attendanceResult.data.attendance 
+            } 
+          });
+        } else {
+          navigate('/member/dashboard', { 
+            state: { 
+              attendanceError: attendanceResult.error 
+            } 
+          });
+        }
+      } else {
+        navigate('/member/dashboard');
+      }
     } catch (err) {
       console.error(err);
       if (err.response?.status === 401) {
@@ -62,11 +96,6 @@ export default function MemberChangePassword() {
     }
   };
 
-  const handleSkip = () => {
-    // Allow member to skip password change and go to dashboard
-    navigate('/member/dashboard');
-  };
-
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4">
       <div className="max-w-md w-full">
@@ -75,9 +104,9 @@ export default function MemberChangePassword() {
           <div className="mx-auto w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center mb-4">
             <KeyIcon className="w-6 h-6 text-orange-600" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Change Your Password</h1>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Create Your Password</h1>
           <p className="text-gray-600 text-sm">
-            Welcome to your member account! For security, we recommend changing your password.
+            Welcome to your member account! Please create a secure password to continue.
           </p>
         </div>
 
@@ -92,22 +121,7 @@ export default function MemberChangePassword() {
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
               <label className="block text-xs font-semibold uppercase tracking-wider text-gray-600 mb-2">
-                Current Password
-              </label>
-              <input
-                type="password"
-                required
-                value={currentPassword}
-                onChange={(e) => setCurrentPassword(e.target.value)}
-                placeholder="Enter your current password"
-                className="w-full bg-gray-50 border border-gray-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 rounded-xl px-4 py-3 text-sm text-gray-900 focus:outline-none transition-all duration-200"
-                disabled={loading}
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-gray-600 mb-2">
-                New Password
+                New Password *
               </label>
               <input
                 type="password"
@@ -122,7 +136,7 @@ export default function MemberChangePassword() {
 
             <div>
               <label className="block text-xs font-semibold uppercase tracking-wider text-gray-600 mb-2">
-                Confirm New Password
+                Confirm New Password *
               </label>
               <input
                 type="password"
@@ -154,14 +168,6 @@ export default function MemberChangePassword() {
                 )}
               </button>
 
-              <button
-                type="button"
-                onClick={handleSkip}
-                disabled={loading}
-                className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-3 px-6 rounded-xl transition-colors"
-              >
-                Skip for Now
-              </button>
             </div>
           </form>
 

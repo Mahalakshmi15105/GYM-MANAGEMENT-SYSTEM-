@@ -29,7 +29,18 @@ def get_gym_profile():
     if not gym:
         return jsonify({'error': 'Gym not found'}), 404
     
-    return jsonify(gym.to_dict()), 200
+    # Build logo URL if logo exists
+    logo_url = None
+    has_logo = False
+    if gym.logo:
+        logo_url = f"/static/{gym.logo}"
+        has_logo = True
+    
+    return jsonify({
+        'gym': gym.to_dict(),
+        'logo_url': logo_url,
+        'has_logo': has_logo
+    }), 200
 
 
 @gym_settings_bp.route('/profile', methods=['PUT'])

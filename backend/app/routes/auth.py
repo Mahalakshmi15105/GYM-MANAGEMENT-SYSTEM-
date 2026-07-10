@@ -2,6 +2,8 @@ from flask import Blueprint, request, jsonify
 from app.extensions import db, bcrypt
 from app.models import Gym, User, Member
 from flask_jwt_extended import create_access_token
+from app.activity_logging import ActivityLogger
+import traceback
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -23,8 +25,12 @@ def register():
         return jsonify({'error': 'Email already registered'}), 400
         
     try:
+        # Generate unique attendance QR code for the gym
+        import uuid
+        attendance_qr = f"GYM{str(uuid.uuid4())[:12].upper()}"
+        
         # Create Gym with user-provided data
-        new_gym = Gym(name=gym_name, address=gym_address, phone=gym_phone)
+        new_gym = Gym(name=gym_name, address=gym_address, phone=gym_phone, attendance_qr=attendance_qr)
         db.session.add(new_gym)
         db.session.flush() # Populate the Gym ID before commit
         
@@ -39,6 +45,18 @@ def register():
         )
         db.session.add(new_user)
         db.session.commit()
+        
+        # Log the gym creation (don't fail if logging fails)
+        try:
+            ActivityLogger.log_create(
+                'gym',
+                new_gym.id,
+                entity_name=gym_name,
+                gym_id=new_gym.id,
+                extra_data={'owner_email': email, 'owner_name': name}
+            )
+        except Exception as log_error:
+            print(f"Failed to log gym creation: {log_error}")
         
         # Directly generate JWT token after registration
         access_token = create_access_token(
@@ -71,7 +89,10 @@ def register():
         
     except Exception as e:
         db.session.rollback()
-        return jsonify({'error': 'Registration failed', 'message': str(e)}), 500
+        # Log the full exception for debugging
+        print(f"Registration failed: {str(e)}")
+        print(f"Full traceback: {traceback.format_exc()}")
+        return jsonify({'error': 'Registration failed', 'message': str(e), 'details': traceback.format_exc()}), 500
 
 @auth_bp.route('/login', methods=['POST'])
 def login():
@@ -89,6 +110,14 @@ def login():
     if user and bcrypt.check_password_hash(user.password_hash, password):
         # Handle User authentication (Super Admin, Gym Owner)
         gym = Gym.query.get(user.gym_id) if user.gym_id else None
+        
+        # Validate gym status for Gym Owners (Super Admin is exempt)
+        if user.role == 'gym_owner' and gym:
+            if not gym or gym.status != 'Active':
+                return jsonify({
+                    'error': 'Your gym account has been suspended or deactivated. Please contact the platform administrator.'
+                }), 403
+        
         gym_name = gym.name if gym else None
         gym_address = gym.address if gym else None
         gym_phone = gym.phone if gym else None
@@ -98,7 +127,7 @@ def login():
             additional_claims={
                 'role': user.role,
                 'user_type': 'user',  # Distinguish from member
-                'gym_id': user.gym_id,
+                'gym_id': user.gym_id,  # None for Super Admin
                 'email': user.email,
                 'name': user.name,
                 'gym_name': gym_name,
@@ -129,6 +158,14 @@ def login():
     if member and member.password_hash and bcrypt.check_password_hash(member.password_hash, password):
         # Handle Member authentication
         gym = Gym.query.get(member.gym_id) if member.gym_id else None
+        
+        # Validate gym status for Members
+        if gym:
+            if not gym or gym.status != 'Active':
+                return jsonify({
+                    'error': 'Your gym account has been suspended or deactivated. Please contact the platform administrator.'
+                }), 403
+        
         gym_name = gym.name if gym else None
         gym_address = gym.address if gym else None
         gym_phone = gym.phone if gym else None

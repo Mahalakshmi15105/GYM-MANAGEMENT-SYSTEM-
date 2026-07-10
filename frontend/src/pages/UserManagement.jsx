@@ -33,21 +33,24 @@ const UserManagement = () => {
         if (value) params.append(key, value);
       });
 
-      // Mock API call - would use real endpoint
-      const mockUsers = [
-        { id: 1, name: 'Super Admin', email: 'admin@flexigym.com', role: 'super_admin', status: 'Active', gym_name: 'Platform', last_login: '2023-12-10T10:30:00Z' },
-        { id: 2, name: 'John Smith', email: 'john@fitzone.com', role: 'gym_owner', status: 'Active', gym_name: 'FitZone Gym', last_login: '2023-12-09T14:20:00Z' },
-        { id: 3, name: 'Jane Doe', email: 'jane@fitzone.com', role: 'member', status: 'Active', gym_name: 'FitZone Gym', last_login: '2023-12-08T18:45:00Z' }
-      ];
+      // Fetch users from real API endpoint
+      const [usersRes, analyticsRes] = await Promise.all([
+        api.get(`/api/admin/users?${params.toString()}`),
+        api.get('/api/admin/users/analytics')
+      ]);
+
+      setUsers(usersRes.data.users || []);
       
-      setUsers(mockUsers);
+      // Set metrics from analytics endpoint
+      const analytics = analyticsRes.data.activity_metrics;
       setMetrics({
-        total: mockUsers.length,
-        active: mockUsers.filter(u => u.status === 'Active').length,
-        inactive: mockUsers.filter(u => u.status === 'Inactive').length,
-        super_admins: mockUsers.filter(u => u.role === 'super_admin').length
+        total: analytics.total_users,
+        active: analytics.active_users_last_week,
+        inactive: analytics.total_users - analytics.active_users_last_week,
+        super_admins: analytics.super_admins
       });
     } catch (err) {
+      console.error('Failed to load users:', err);
       setError(err.response?.data?.error || 'Failed to load users');
     } finally {
       setLoading(false);

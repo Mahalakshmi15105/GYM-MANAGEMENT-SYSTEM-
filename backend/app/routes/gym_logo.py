@@ -100,9 +100,13 @@ def upload_logo():
             extra_data={'filename': unique_filename, 'file_size': file_size}
         )
         
+        # Build logo URL
+        logo_url = f"/static/{relative_path}"
+        
         return jsonify({
             'message': 'Logo uploaded successfully',
-            'logo_url': f"/static/{relative_path}",
+            'logo_url': logo_url,
+            'has_logo': True,
             'gym': gym.to_dict()
         }), 200
         

@@ -15,6 +15,7 @@ class Gym(db.Model):
     logo = db.Column(db.String(255), nullable=True)
     currency = db.Column(db.String(3), nullable=True, default='INR')
     language = db.Column(db.String(5), nullable=True, default='en')
+    attendance_qr = db.Column(db.String(255), nullable=True, unique=True)  # Unique QR code for gym attendance
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     # Relationships
@@ -31,6 +32,7 @@ class Gym(db.Model):
             'logo': self.logo,
             'currency': self.currency or 'INR',
             'language': self.language or 'en',
+            'attendance_qr': self.attendance_qr,
             'created_at': self.created_at.isoformat() if self.created_at else None
         }
 
@@ -162,6 +164,10 @@ class Payment(db.Model):
     created_at = db.Column(db.DateTime, nullable=True)
     updated_at = db.Column(db.DateTime, nullable=True)
     
+    # Relationships
+    member = db.relationship('Member', backref='payments')
+    gym = db.relationship('Gym', backref='payments')
+    
     def to_dict(self):
         return {
             'id': self.id,
@@ -175,7 +181,10 @@ class Payment(db.Model):
             'transaction_id': self.transaction_id,
             'notes': self.notes,
             'created_at': self.created_at.isoformat() if self.created_at else None,
-            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
+            'member_name': f"{self.member.first_name} {self.member.last_name}".strip() if self.member else None,
+            'member_phone': self.member.phone if self.member else None,
+            'gym_name': self.gym.name if self.gym else None
         }
 
 

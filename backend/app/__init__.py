@@ -53,6 +53,10 @@ def create_app(config_class=Config):
     from app.routes.gym_settings import gym_settings_bp
     app.register_blueprint(gym_settings_bp, url_prefix='/api/gym')
     
+    # Register gym QR blueprint
+    from app.routes.gym_qr import gym_qr_bp
+    app.register_blueprint(gym_qr_bp, url_prefix='/api/gym/qr')
+    
     # Register admin blueprint (Super Admin functionality)
     from app.routes.admin import admin_bp
     app.register_blueprint(admin_bp, url_prefix='/api/admin')

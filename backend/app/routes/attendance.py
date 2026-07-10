@@ -518,3 +518,94 @@ def monthly_report():
         },
         'weekly_breakdown': list(weekly_stats.values())
     }), 200
+
+
+@attendance_bp.route('/qr-checkin', methods=['POST'])
+@jwt_required()
+def qr_checkin():
+    """QR-based attendance check-in for members"""
+    from app.models import Gym
+    from urllib.parse import urlparse, parse_qs
+    
+    claims = get_jwt()
+    member_id = claims.get('member_id')
+    gym_id = claims.get('gym_id')
+    
+    # Only members can use QR check-in
+    if not member_id or claims.get('role') != 'member':
+        return jsonify({'error': 'Access denied. Only members can use QR check-in.'}), 403
+    
+    data = request.get_json() or {}
+    qr_code = data.get('qr_code')
+    
+    if not qr_code:
+        return jsonify({'error': 'QR code is required'}), 400
+    
+    try:
+        # Extract gym QR code from URL if QR code contains a URL
+        gym_qr_value = qr_code
+        if qr_code.startswith('http'):
+            # Parse URL and extract gym parameter
+            parsed = urlparse(qr_code)
+            query_params = parse_qs(parsed.query)
+            if 'gym' in query_params:
+                gym_qr_value = query_params['gym'][0]
+        
+        # Verify the QR code belongs to the member's gym
+        gym = Gym.query.filter_by(id=gym_id).first()
+        if not gym:
+            return jsonify({'error': 'Gym not found'}), 404
+        
+        if gym.attendance_qr != gym_qr_value:
+            return jsonify({'error': 'Invalid QR code. This QR does not belong to your gym.'}), 400
+        
+        # Check if member exists and belongs to this gym
+        member = Member.query.filter_by(id=member_id, gym_id=gym_id).first()
+        if not member:
+            return jsonify({'error': 'Member not found in this gym'}), 404
+        
+        # Check if member has already checked in today
+        today = date.today()
+        existing_attendance = Attendance.query.filter_by(
+            member_id=member_id,
+            gym_id=gym_id,
+            attendance_date=today
+        ).first()
+        
+        if existing_attendance:
+            return jsonify({
+                'error': 'Already checked in today',
+                'attendance': existing_attendance.to_dict()
+            }), 400
+        
+        # Create attendance record
+        now = datetime.utcnow()
+        new_attendance = Attendance(
+            gym_id=gym_id,
+            member_id=member_id,
+            check_in_time=now,
+            attendance_date=today,
+            status='Checked In'
+        )
+        
+        db.session.add(new_attendance)
+        db.session.commit()
+        
+        # Log the activity
+        ActivityLogger.log_activity(
+            'qr_checkin',
+            f"Member {member.first_name} {member.last_name} checked in via QR",
+            entity_type='attendance',
+            entity_id=new_attendance.id,
+            gym_id=gym_id,
+            extra_data={'member_id': member_id, 'qr_code': qr_code}
+        )
+        
+        return jsonify({
+            'message': 'Check-in successful',
+            'attendance': new_attendance.to_dict()
+        }), 201
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': f'Failed to check in: {str(e)}'}), 500

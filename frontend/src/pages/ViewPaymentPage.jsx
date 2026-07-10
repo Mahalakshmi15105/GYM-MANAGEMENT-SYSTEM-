@@ -319,6 +319,13 @@ export default function ViewPaymentPage() {
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white border border-gray-200 rounded-2xl p-8 max-w-md w-full shadow-lg max-h-[90vh] overflow-y-auto">
             <div className="text-center mb-6">
+              {receiptData.logo_url && (
+                <img
+                  src={`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}${receiptData.logo_url}`}
+                  alt="Gym Logo"
+                  className="w-20 h-20 mx-auto object-contain mb-4 rounded-lg"
+                />
+              )}
               <h3 className="text-xl font-bold text-gray-900 mb-2">
                 Payment Receipt
               </h3>

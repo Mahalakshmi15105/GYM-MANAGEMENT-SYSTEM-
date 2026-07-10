@@ -61,7 +61,7 @@ const ActivityLogs = () => {
         <AdminMetricCard
           title="Today's Activity"
           value={logs.filter(log => 
-            new Date(log.timestamp).toDateString() === new Date().toDateString()
+            log?.timestamp && new Date(log.timestamp).toDateString() === new Date().toDateString()
           ).length}
           trend={12.1}
           icon={<ArrowTrendingUpIcon className="w-6 h-6" />}
@@ -69,7 +69,7 @@ const ActivityLogs = () => {
         <AdminMetricCard
           title="Critical Events"
           value={logs.filter(log => 
-            log.action.includes('delete') || log.action.includes('suspend')
+            (log?.action || "").includes('delete') || (log?.action || "").includes('suspend')
           ).length}
           trend={-2.4}
           icon={<ExclamationTriangleIcon className="w-6 h-6" />}
