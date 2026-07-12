@@ -41,7 +41,7 @@ export default function LandingPage() {
           <div className="flex items-center gap-2">
             <HeartIcon className="w-8 h-8 sm:w-10 sm:h-10 text-orange-600" />
             <span className="text-xl sm:text-2xl font-bold text-orange-500">
-              FlexiGym
+              SmartGoNext Gym
             </span>
           </div>
           {/* Navigation links */}
@@ -90,7 +90,7 @@ export default function LandingPage() {
             <h1 className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl 2xl:text-9xl font-black tracking-tight text-gray-900 mb-6 sm:mb-8 leading-tight max-w-6xl">
               Scale Your Gym Operations with{' '}
               <span className="text-orange-500">
-                FlexiGym
+                SmartGoNext Gym
               </span>
             </h1>
             <p className="text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl 2xl:text-3xl text-gray-600 mb-10 sm:mb-12 max-w-2xl lg:max-w-4xl 2xl:max-w-6xl leading-relaxed">
@@ -245,9 +245,12 @@ export default function LandingPage() {
                       </ul>
                     ) : null}
                     
-                    <button className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold px-6 py-3.5 sm:px-8 sm:py-4 xl:px-10 xl:py-5 rounded-xl transition-all duration-200 shadow-lg shadow-orange-500/25 transform hover:-translate-y-0.5 text-sm sm:text-base xl:text-lg">
+                    <Link
+                      to="/register"
+                      className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold px-6 py-3.5 sm:px-8 sm:py-4 xl:px-10 xl:py-5 rounded-xl transition-all duration-200 shadow-lg shadow-orange-500/25 transform hover:-translate-y-0.5 text-sm sm:text-base xl:text-lg text-center"
+                    >
                       Choose Plan
-                    </button>
+                    </Link>
                   </div>
                 ))
               )}

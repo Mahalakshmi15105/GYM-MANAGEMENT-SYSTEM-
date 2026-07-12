@@ -34,11 +34,13 @@ import GymManagement from "../pages/GymManagement";
 import SubscriptionManagement from "../pages/SubscriptionManagement";
 import UserManagement from "../pages/UserManagement";
 import SystemSettings from "../pages/SystemSettings";
+import SuperAdminAddGym from "../pages/SuperAdminAddGym";
 import GymProfilePage from "../pages/GymProfilePage";
 import GymOwnerSettingsPage from "../pages/GymOwnerSettingsPage";
 import ReportsPage from "../pages/ReportsPage";
 import MemberDashboard from "../pages/MemberDashboard";
 import MemberChangePassword from "../pages/MemberChangePassword";
+import MemberSettings from "../pages/MemberSettings";
 import GymQRPage from "../pages/GymQRPage";
 import BroadcastMessagesPage from "../pages/BroadcastMessagesPage";
 import MemberMessagesPage from "../pages/MemberMessagesPage";
@@ -53,11 +55,11 @@ function PublicOnlyRoute({ children }) {
   
   // Redirect based on user role
   if (user?.role === 'super_admin') {
-    return <Navigate to="/admin/dashboard" replace />;
+    return <Navigate to="/admin/dashboard" replace />;  // Super Admin goes to Platform Dashboard
   } else if (user?.role === 'gym_owner') {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to="/dashboard" replace />;  // Gym Owner goes to Gym Dashboard
   } else if (user?.role === 'member') {
-    return <Navigate to="/member/dashboard" replace />;
+    return <Navigate to="/member/dashboard" replace />;  // Member goes to Member Dashboard
   }
   
   return <Navigate to="/dashboard" replace />;
@@ -107,6 +109,7 @@ export default function AppRoutes() {
                 <Route index element={<Navigate to="dashboard" replace />} />
                 <Route path="dashboard" element={<SuperAdminDashboard />} />
                 <Route path="gyms" element={<GymManagement />} />
+                <Route path="gyms/add" element={<SuperAdminAddGym />} />
                 <Route
                   path="subscriptions"
                   element={<SubscriptionManagement />}
@@ -128,6 +131,7 @@ export default function AppRoutes() {
                 <Route index element={<Navigate to="dashboard" replace />} />
                 <Route path="dashboard" element={<MemberDashboard />} />
                 <Route path="change-password" element={<MemberChangePassword />} />
+                <Route path="settings" element={<MemberSettings />} />
               </Routes>
             </MemberRoute>
           }
@@ -363,6 +367,14 @@ export default function AppRoutes() {
         element={
           <MemberRoute>
             <MemberChangePassword />
+          </MemberRoute>
+        }
+      />
+      <Route
+        path="/member/settings"
+        element={
+          <MemberRoute>
+            <MemberSettings />
           </MemberRoute>
         }
       />

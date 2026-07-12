@@ -22,7 +22,7 @@ export default function DashboardPlaceholder() {
             Hello, {user?.name || 'Gym Owner'} <HandWave className="w-6 h-6 text-orange-500" />
           </h1>
           <p className="text-sm text-gray-600">
-            Welcome to your FlexiGym workspace dashboard. Here is your gym status.
+            Welcome to your SmartGoNext Gym workspace dashboard. Here is your gym status.
           </p>
         </div>
         <div className="flex items-center gap-2 text-xs bg-orange-50 text-orange-700 px-3.5 py-2 rounded-xl border border-orange-200 font-bold self-start md:self-auto">

@@ -82,8 +82,16 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const logout = () => {
+  const logout = async () => {
     const gymId = user?.gym_id;
+    
+    // Call backend logout API to set gym status to CLOSED for gym owners
+    try {
+      await api.post('/api/auth/logout');
+    } catch (err) {
+      console.error('Logout API call failed:', err);
+      // Continue with local logout even if API call fails
+    }
     
     setToken(null);
     setUser(null);

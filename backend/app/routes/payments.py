@@ -443,7 +443,7 @@ def generate_receipt(payment_id):
     receipt_data = {
         'receipt_number': f"RCP{payment.id:06d}",
         'payment': payment.to_dict(),
-        'gym_name': payment.gym.name if payment.gym else 'FlexiGym',
+        'gym_name': payment.gym.name if payment.gym else 'SmartGoNext Gym',
         'logo_url': logo_url,
         'currency': get_gym_currency(gym_id),
         'generated_at': datetime.utcnow().isoformat()

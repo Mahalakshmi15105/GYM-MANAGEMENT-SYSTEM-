@@ -64,14 +64,18 @@ export default function Sidebar({ isOpen, setIsOpen }) {
 
   // Build navigation links based on user role
   const getNavigationLinks = () => {
-    let links = [...baseLinks];
+    let links = [];
 
-    // Add Super Admin links first if user is super admin
+    // Super Admins get only Super Admin specific links (no base Dashboard)
     if (isSuperAdmin) {
-      links = [...links, ...superAdminLinks];
-    } else if (canAccessGymManagement) {
-      // Add gym management links for gym owners
-      links = [...links, ...gymManagementLinks];
+      links = [...superAdminLinks];
+    } else {
+      // Other users get base links + gym management links
+      links = [...baseLinks];
+      if (canAccessGymManagement) {
+        // Add gym management links for gym owners
+        links = [...links, ...gymManagementLinks];
+      }
     }
 
     return links;
@@ -105,13 +109,14 @@ export default function Sidebar({ isOpen, setIsOpen }) {
                     className="w-10 h-10" 
                     showGymName={true}
                     gymNameClassName="text-sm font-medium text-gray-900"
+                    showPoweredBy={true}
                   />
                 ) : (
                   <div className="flex items-center gap-3">
                     <ShieldCheckIcon className="w-10 h-10 text-red-600" />
                     <div className="flex flex-col">
                       <span className="text-lg font-bold text-orange-500">
-                        FlexiGym
+                        SmartGoNext Gym
                       </span>
                       <span className="text-xs text-gray-600 font-medium">
                         Platform Administration
@@ -124,7 +129,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
               <>
                 <HeartIcon className="w-8 h-8 text-orange-600" />
                 <span className="text-xl font-bold text-orange-500">
-                  FlexiGym
+                  SmartGoNext Gym
                 </span>
               </>
             )}

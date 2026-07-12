@@ -154,7 +154,7 @@ const SuperAdminDashboard = () => {
                 Platform Dashboard
               </h1>
               <p className="text-gray-600">
-                Real-time analytics and platform oversight for FlexiGym SaaS
+                Real-time analytics and platform oversight for SmartGoNext Gym SaaS
               </p>
             </div>
             <div className="flex items-center gap-4">

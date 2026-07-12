@@ -31,7 +31,7 @@ def get_notifications():
     role = user_info['role']
     user_id = int(user_info['user_id']) if user_info['user_id'] else None
     gym_id = user_info['gym_id']
-    member_id = user_info['member_id']
+    member_id = int(user_info['member_id']) if user_info['member_id'] else None
     
     try:
         # Build query based on role
@@ -87,7 +87,7 @@ def get_unread_count():
     role = user_info['role']
     user_id = int(user_info['user_id']) if user_info['user_id'] else None
     gym_id = user_info['gym_id']
-    member_id = user_info['member_id']
+    member_id = int(user_info['member_id']) if user_info['member_id'] else None
     
     try:
         query = Notification.query.filter(Notification.is_read == False)
@@ -130,7 +130,7 @@ def mark_as_read(notification_id):
     role = user_info['role']
     user_id = int(user_info['user_id']) if user_info['user_id'] else None
     gym_id = user_info['gym_id']
-    member_id = user_info['member_id']
+    member_id = int(user_info['member_id']) if user_info['member_id'] else None
     
     try:
         notification = Notification.query.get(notification_id)
@@ -168,7 +168,7 @@ def mark_all_as_read():
     role = user_info['role']
     user_id = int(user_info['user_id']) if user_info['user_id'] else None
     gym_id = user_info['gym_id']
-    member_id = user_info['member_id']
+    member_id = int(user_info['member_id']) if user_info['member_id'] else None
     
     try:
         query = Notification.query.filter(Notification.is_read == False)

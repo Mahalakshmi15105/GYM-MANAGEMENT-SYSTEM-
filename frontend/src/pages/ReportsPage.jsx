@@ -4,7 +4,6 @@ import { useAuth } from "../context/AuthContext";
 import { useTranslation } from "../utils/i18n";
 import api from "../services/api";
 import ResponsiveDataTable from "../components/admin/ResponsiveDataTable";
-import AdminChart from "../components/admin/AdminChart";
 import AdminMetricCard from "../components/admin/AdminMetricCard";
 import AdminActionModal from "../components/admin/AdminActionModal";
 import { useCurrency } from "../utils/currency";
@@ -12,7 +11,6 @@ import {
   ArrowPathIcon,
   BanknotesIcon,
   CalendarIcon,
-  ChartBarIcon,
   ChevronLeftIcon,
   CreditCardIcon,
   DocumentArrowDownIcon,
@@ -24,6 +22,7 @@ import {
   XMarkIcon,
 } from "@heroicons/react/24/outline";
 import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
 
 export default function ReportsPage() {
@@ -173,18 +172,32 @@ export default function ReportsPage() {
     const reportRows = getExportRowsFromPayload(type, response.data);
     if (!reportRows.length) return;
 
+    // Format rows with user-friendly headers
+    const formattedRows = reportRows.map(row => formatExportRow(row, type));
+    const headers = getColumnHeaders(type);
+    const headerKeys = Object.keys(formattedRows[0] || {});
+
     const baseName = `${type}-report`;
+    
     if (format === "csv") {
       const csvRows = [];
-      const headers = Object.keys(reportRows[0]);
-      csvRows.push(headers.join(","));
-      reportRows.forEach((row) => {
+      csvRows.push(headerKeys.join(","));
+      formattedRows.forEach((row) => {
         csvRows.push(
-          headers.map((header) => JSON.stringify(row[header] ?? "")).join(","),
+          headerKeys.map((header) => {
+            const value = row[header] ?? "";
+            // Escape quotes and wrap in quotes if contains comma or quote
+            const stringValue = String(value);
+            if (stringValue.includes(",") || stringValue.includes('"') || stringValue.includes("\n")) {
+              return `"${stringValue.replace(/"/g, '""')}"`;
+            }
+            return stringValue;
+          }).join(",")
         );
       });
 
-      const blob = new Blob([csvRows.join("\n")], {
+      const bom = "\uFEFF"; // UTF-8 BOM for Excel compatibility
+      const blob = new Blob([bom + csvRows.join("\n")], {
         type: "text/csv;charset=utf-8;",
       });
       const url = URL.createObjectURL(blob);
@@ -197,8 +210,15 @@ export default function ReportsPage() {
     }
 
     if (format === "xlsx") {
-      const worksheet = XLSX.utils.json_to_sheet(reportRows);
+      const worksheet = XLSX.utils.json_to_sheet(formattedRows);
       const workbook = XLSX.utils.book_new();
+      
+      // Auto-fit column widths
+      const colWidths = headerKeys.map(key => ({
+        wch: Math.max(key.length, ...formattedRows.map(row => String(row[key] || "").length)) + 2
+      }));
+      worksheet['!cols'] = colWidths;
+      
       XLSX.utils.book_append_sheet(workbook, worksheet, "Report");
       XLSX.writeFile(workbook, `${baseName}.xlsx`);
       return;
@@ -206,31 +226,95 @@ export default function ReportsPage() {
 
     if (format === "pdf") {
       const doc = new jsPDF();
-      doc.setFontSize(16);
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+      
+      // Add page border
+      doc.setDrawColor(200);
+      doc.setLineWidth(0.5);
+      doc.rect(5, 5, pageWidth - 10, pageHeight - 10);
+      
+      // Report title
+      doc.setFontSize(18);
+      doc.setFont("helvetica", "bold");
       doc.text(
         `${type.charAt(0).toUpperCase() + type.slice(1)} Report`,
-        14,
-        18,
+        pageWidth / 2,
+        20,
+        { align: "center" }
       );
+      
+      // Report metadata
       doc.setFontSize(10);
-      doc.text(`Gym ID: ${user?.gym_id || "-"}`, 14, 26);
-      doc.text(`Rows exported: ${reportRows.length}`, 14, 32);
-
-      let y = 40;
-      reportRows.slice(0, 20).forEach((row, index) => {
-        const line = `${index + 1}. ${Object.entries(row)
-          .slice(0, 6)
-          .map(([key, value]) => `${key}: ${value ?? "-"}`)
-          .join(" | ")}`;
-        const lines = doc.splitTextToSize(line, 180);
-        if (y + lines.length * 6 > 280) {
-          doc.addPage();
-          y = 20;
-        }
-        doc.text(lines, 14, y);
-        y += lines.length * 6 + 2;
+      doc.setFont("helvetica", "normal");
+      doc.text(`Gym ID: ${user?.gym_id || "-"}`, 14, 30);
+      doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 36);
+      doc.text(`Total Records: ${formattedRows.length}`, 14, 42);
+      
+      // Prepare table data
+      const tableData = formattedRows.map(row => headerKeys.map(key => row[key] || '-'));
+      
+      // Determine column alignment based on content
+      const columnStyles = {};
+      headerKeys.forEach((key, i) => {
+        const sampleValue = String(formattedRows[0]?.[key] || '');
+        // Check if the column contains numeric data (currency or numbers)
+        const isNumeric = sampleValue.match(/^[\$€£]?\s*[\d,]+\.?\d*\s*[\$€£]?$/) || 
+                         sampleValue.match(/^\d+$/) ||
+                         key.toLowerCase().includes('amount') ||
+                         key.toLowerCase().includes('paid') ||
+                         key.toLowerCase().includes('revenue') ||
+                         key.toLowerCase().includes('count');
+        
+        columnStyles[i] = {
+          halign: isNumeric ? 'right' : 'left',
+          cellPadding: 3,
+          fontSize: 8,
+        };
       });
-
+      
+      // Generate table with autoTable
+      autoTable(doc, {
+        startY: 50,
+        head: [headerKeys],
+        body: tableData,
+        theme: 'grid',
+        styles: {
+          fontSize: 8,
+          cellPadding: 3,
+          overflow: 'linebreak',
+        },
+        headStyles: {
+          fillColor: [243, 156, 18], // Orange background
+          textColor: [255, 255, 255],
+          fontStyle: 'bold',
+          halign: 'center',
+          cellPadding: 4,
+          fontSize: 9,
+        },
+        alternateRowStyles: {
+          fillColor: [249, 250, 251], // Light gray for alternating rows
+        },
+        columnStyles: columnStyles,
+        margin: { top: 50, left: 14, right: 14, bottom: 20 },
+        didDrawPage: function(data) {
+          // Add page border on each page
+          doc.setDrawColor(200);
+          doc.setLineWidth(0.5);
+          doc.rect(5, 5, pageWidth - 10, pageHeight - 10);
+          
+          // Add page number
+          doc.setFontSize(8);
+          doc.setFont("helvetica", "normal");
+          doc.text(
+            `Page ${doc.internal.getNumberOfPages()}`,
+            pageWidth / 2,
+            pageHeight - 10,
+            { align: "center" }
+          );
+        },
+      });
+      
       doc.save(`${baseName}.pdf`);
     }
   };
@@ -249,8 +333,86 @@ export default function ReportsPage() {
     return [];
   };
 
+  const getColumnHeaders = (type) => {
+    const headers = {
+      members: {
+        member_id: "Member ID",
+        full_name: "Full Name",
+        membership_plan_name: "Membership Plan",
+        membership_start_date: "Join Date",
+        membership_end_date: "Expiry Date",
+        status: "Status",
+        attendance_count: "Attendance Count",
+        total_paid: "Total Paid",
+        last_payment_date: "Last Payment Date",
+        remaining_membership_days: "Remaining Days",
+        phone: "Phone",
+        email: "Email",
+        gender: "Gender",
+        date_of_birth: "Date of Birth",
+        address: "Address",
+        emergency_contact_name: "Emergency Contact Name",
+        emergency_contact_phone: "Emergency Contact Phone",
+      },
+      attendance: {
+        attendance_date: "Date",
+        date: "Date",
+        member_name: "Member Name",
+        member_phone: "Member Phone",
+        check_in_time: "Check In Time",
+        check_out_time: "Check Out Time",
+        duration_minutes: "Duration (Minutes)",
+        status: "Status",
+      },
+      payments: {
+        payment_date: "Payment Date",
+        date: "Date",
+        member_name: "Member Name",
+        membership_plan_name: "Membership Plan",
+        plan_name: "Plan Name",
+        payment_amount: "Amount",
+        amount: "Amount",
+        payment_method: "Payment Method",
+        method: "Method",
+        payment_status: "Payment Status",
+        status: "Status",
+        transaction_id: "Transaction ID",
+      },
+      revenue: {
+        date: "Date",
+        revenue: "Revenue",
+      },
+    };
+    return headers[type] || {};
+  };
+
+  const formatExportRow = (row, type) => {
+    const headers = getColumnHeaders(type);
+    const formattedRow = {};
+    
+    Object.keys(row).forEach(key => {
+      if (headers[key]) {
+        let value = row[key];
+        // Format dates
+        if (key.includes('date') || key.includes('_at')) {
+          value = formatDate(value);
+        }
+        // Format currency
+        if (key.includes('amount') || key.includes('paid') || key === 'revenue') {
+          value = formatCurrency(value);
+        }
+        // Format duration
+        if (key === 'duration_minutes') {
+          value = formatDuration(value);
+        }
+        formattedRow[headers[key]] = value ?? '-';
+      }
+    });
+    
+    return formattedRow;
+  };
+
   const summary = reports?.summary || {};
-  const charts = reports?.charts || {};
 
   const memberColumns = [
     { key: "member_id", label: "Member ID" },
@@ -421,16 +583,6 @@ export default function ReportsPage() {
     { key: "checkins", label: "Check-ins" },
     { key: "checked_out", label: "Checked Out" },
   ];
-
-  const monthRevenueData = charts.monthly_revenue || [];
-  const attendanceTrendData = (
-    charts.attendance_trend?.daily_breakdown || []
-  ).map((item) => ({ label: formatDate(item.date), value: item.checkins }));
-  const paymentStatusData = (charts.payment_status || []).map((item) => ({
-    label: item.status,
-    value: item.count,
-  }));
-  const activeInactiveData = charts.active_vs_inactive_members || [];
 
   const selectedMember = reports?.member_report?.members?.find(
     (member) => String(member.id) === String(filters.memberId),
@@ -615,105 +767,7 @@ export default function ReportsPage() {
       );
     }
 
-    return (
-      <section className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-          <AdminMetricCard
-            title={t('reports.dailyRevenue')}
-            value={formatCurrency(
-              reports?.revenue_report?.summary_cards?.daily_revenue,
-            )}
-            icon={<BanknotesIcon className="w-5 h-5" />}
-            color="orange"
-            loading={loading}
-          />
-          <AdminMetricCard
-            title={t('dashboard.monthlyRevenue')}
-            value={formatCurrency(
-              reports?.revenue_report?.summary_cards?.monthly_revenue,
-            )}
-            icon={<ChartBarIcon className="w-5 h-5" />}
-            color="green"
-            loading={loading}
-          />
-          <AdminMetricCard
-            title={t('reports.yearlyRevenue')}
-            value={formatCurrency(
-              reports?.revenue_report?.summary_cards?.yearly_revenue,
-            )}
-            icon={<DocumentTextIcon className="w-5 h-5" />}
-            color="blue"
-            loading={loading}
-          />
-          <AdminMetricCard
-            title={t('reports.totalRevenue')}
-            value={formatCurrency(
-              reports?.revenue_report?.summary_cards?.total_revenue,
-            )}
-            icon={<CreditCardIcon className="w-5 h-5" />}
-            color="red"
-            loading={loading}
-          />
-        </div>
-
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-          <AdminChart
-            type="line"
-            data={monthRevenueData}
-            title={t('dashboard.monthlyRevenue')}
-            subtitle={t('reports.last6Months')}
-            color="orange"
-            loading={loading}
-          />
-          <AdminChart
-            type="bar"
-            data={attendanceTrendData}
-            title={t('attendance.weeklyAttendance')}
-            subtitle={t('reports.last13Days')}
-            color="blue"
-            loading={loading}
-          />
-          <AdminChart
-            type="pie"
-            data={paymentStatusData}
-            title={t('payments.paymentStatus')}
-            subtitle={t('reports.paymentStatusSubtitle')}
-            color="green"
-            loading={loading}
-          />
-          <AdminChart
-            type="pie"
-            data={activeInactiveData}
-            title={t('reports.activeInactiveMembers')}
-            subtitle={t('reports.memberStatusSplit')}
-            color="red"
-            loading={loading}
-          />
-        </div>
-
-        <ResponsiveDataTable
-          data={reports?.revenue_report?.monthly || []}
-          columns={revenueColumns}
-          loading={loading}
-          searchable={false}
-          mobileCardLayout={true}
-        />
-        <ResponsiveDataTable
-          data={reports?.revenue_report?.by_plan || []}
-          columns={[
-            { key: "plan_name", label: t('plans.title') },
-            {
-              key: "revenue",
-              label: "Revenue",
-              render: (value) => formatCurrency(value),
-            },
-          ]}
-          loading={loading}
-          searchable={false}
-          mobileCardLayout={true}
-        />
-      </section>
-    );
+    return null;
   };
 
   const memberDetailData = memberDetail?.member;
@@ -755,12 +809,12 @@ export default function ReportsPage() {
               setExportModal({
                 isOpen: true,
                 type:
-                  activeSection === "revenue"
-                    ? "revenue"
-                    : activeSection === "attendance"
-                      ? "attendance"
-                      : activeSection === "payments"
-                        ? "payments"
+                  activeSection === "attendance"
+                    ? "attendance"
+                    : activeSection === "payments"
+                      ? "payments"
+                      : activeSection === "revenue"
+                        ? "revenue"
                         : "members",
                 format: "xlsx",
               })
@@ -893,7 +947,6 @@ export default function ReportsPage() {
             { key: "member", label: t('reports.membershipReport') },
             { key: "attendance", label: t('reports.attendanceReport') },
             { key: "payments", label: t('reports.revenueReport') },
-            { key: "revenue", label: t('reports.revenueReport') },
           ].map((item) => (
             <button
               key={item.key}

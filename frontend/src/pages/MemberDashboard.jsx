@@ -14,12 +14,12 @@ import {
   CheckCircleIcon,
   ExclamationTriangleIcon,
   ArrowPathIcon,
-  KeyIcon,
   BellIcon,
   IdentificationIcon,
   CreditCardIcon,
   XMarkIcon,
-  ChatBubbleLeftIcon
+  ChatBubbleLeftIcon,
+  Cog6ToothIcon
 } from '@heroicons/react/24/outline';
 
 export default function MemberDashboard() {
@@ -33,9 +33,12 @@ export default function MemberDashboard() {
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState('overview');
   const [attendanceMessage, setAttendanceMessage] = useState(null);
+  const [gymStatus, setGymStatus] = useState(null);
+  const [showGymStatus, setShowGymStatus] = useState(true);
 
   useEffect(() => {
     fetchDashboardData();
+    fetchGymStatus();
     
     // Check for attendance success/error from navigation state
     if (location.state) {
@@ -55,6 +58,18 @@ export default function MemberDashboard() {
       window.history.replaceState({}, document.title);
     }
   }, [location.state]);
+
+  const fetchGymStatus = async () => {
+    try {
+      const response = await api.get('/api/members/gym-status');
+      console.log('Gym status response:', response.data);
+      setGymStatus(response.data);
+      setShowGymStatus(response.data.show_gym_status);
+    } catch (err) {
+      console.error('Failed to fetch gym status:', err);
+      console.error('Error response:', err.response?.data);
+    }
+  };
 
   const fetchDashboardData = async () => {
     try {
@@ -155,6 +170,34 @@ export default function MemberDashboard() {
         </div>
       )}
 
+      {/* Gym Status Card */}
+      {showGymStatus && gymStatus && (
+        <div className={`${
+          gymStatus.operational_status === 'Open' 
+            ? 'bg-green-50 border-green-200' 
+            : 'bg-red-50 border-red-200'
+        } border mx-4 mt-4 rounded-xl p-4`}>
+          <div className="flex items-center gap-3">
+            <div className={`w-3 h-3 rounded-full ${
+              gymStatus.operational_status === 'Open' ? 'bg-green-500' : 'bg-red-500'
+            }`}></div>
+            <div>
+              <p className="font-semibold text-gray-900">Gym Status</p>
+              <p className={`text-sm ${
+                gymStatus.operational_status === 'Open' ? 'text-green-700' : 'text-red-700'
+              }`}>
+                {gymStatus.operational_status === 'Open' ? '🟢 OPEN' : '🔴 CLOSED'}
+              </p>
+              <p className="text-xs text-gray-600">
+                {gymStatus.operational_status === 'Open' 
+                  ? 'Your gym is currently open.' 
+                  : 'Your gym is currently closed.'}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -171,6 +214,13 @@ export default function MemberDashboard() {
             </div>
             <div className="flex items-center gap-3">
               <NotificationBell />
+              <button
+                onClick={() => navigate('/member/settings')}
+                className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2"
+              >
+                <Cog6ToothIcon className="w-4 h-4" />
+                Settings
+              </button>
               <button
                 onClick={handleLogout}
                 className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium"
@@ -226,7 +276,7 @@ export default function MemberDashboard() {
             Profile
           </button>
           <button
-            onClick={() => setActiveTab('messages')}
+            onClick={() => navigate('/member/messages')}
             className={`pb-4 px-1 border-b-2 font-medium text-sm ${
               activeTab === 'messages'
                 ? 'border-orange-500 text-orange-600'
@@ -484,16 +534,6 @@ export default function MemberDashboard() {
             <div className="bg-white border border-gray-200 rounded-xl p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Account Settings</h3>
               <div className="space-y-4">
-                <button
-                  onClick={() => navigate('/member/change-password')}
-                  className="w-full flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  <div className="flex items-center gap-3">
-                    <KeyIcon className="w-5 h-5 text-gray-600" />
-                    <span className="font-medium text-gray-900">Change Password</span>
-                  </div>
-                  <span className="text-gray-400">→</span>
-                </button>
                 <button
                   onClick={() => navigate('/member/messages')}
                   className="w-full flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"

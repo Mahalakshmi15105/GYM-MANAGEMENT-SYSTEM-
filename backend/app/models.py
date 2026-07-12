@@ -12,6 +12,7 @@ class Gym(db.Model):
     address = db.Column(db.String(255), nullable=True)
     phone = db.Column(db.String(20), nullable=True)
     status = db.Column(db.String(20), nullable=False, default='Active')
+    operational_status = db.Column(db.String(20), nullable=False, default='Closed')  # Gym operational status: Open/Closed
     logo = db.Column(db.String(255), nullable=True)
     currency = db.Column(db.String(3), nullable=True, default='INR')
     language = db.Column(db.String(5), nullable=True, default='en')
@@ -30,6 +31,7 @@ class Gym(db.Model):
             'address': self.address,
             'phone': self.phone,
             'status': self.status,
+            'operational_status': self.operational_status,
             'logo': self.logo,
             'currency': self.currency or 'INR',
             'language': self.language or 'en',
@@ -84,6 +86,8 @@ class User(db.Model):
     role = db.Column(db.String(20), nullable=False, default='user')
     gym_id = db.Column(db.Integer, db.ForeignKey('gyms.id'), nullable=True)
     created_at = db.Column(db.DateTime, nullable=True)  # Match DB schema
+    last_login = db.Column(db.DateTime, nullable=True)  # Track last login timestamp
+    status = db.Column(db.String(20), nullable=False, default='Active')  # User status: Active, Inactive, Suspended
     
     def to_dict(self):
         return {
@@ -92,7 +96,9 @@ class User(db.Model):
             'email': self.email,
             'role': self.role,
             'gym_id': self.gym_id,
-            'created_at': self.created_at.isoformat() if self.created_at else None
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'last_login': self.last_login.isoformat() if self.last_login else None,
+            'status': self.status
         }
 
 
@@ -119,6 +125,7 @@ class Member(db.Model):
     status = db.Column(db.String(20), nullable=False)
     workout_duration_minutes = db.Column(db.Integer, nullable=True, default=120)  # Default 2 hours (120 minutes)
     photo = db.Column(db.String(255), nullable=True)
+    show_gym_status = db.Column(db.Boolean, nullable=False, default=True)  # Member preference to show/hide gym status
     created_at = db.Column(db.DateTime, nullable=True)
     updated_at = db.Column(db.DateTime, nullable=True)
     
@@ -144,6 +151,7 @@ class Member(db.Model):
             'status': self.status,
             'workout_duration_minutes': self.workout_duration_minutes,
             'photo': self.photo,
+            'show_gym_status': self.show_gym_status,
             'has_account': bool(self.password_hash and self.password_hash.strip()),  # Indicates if member has login account
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None
@@ -276,9 +284,9 @@ class Notification(db.Model):
             'message': self.message,
             'reference_id': self.reference_id,
             'is_read': self.is_read,
-            'created_at': self.created_at.isoformat() if self.created_at else None,
-            'scheduled_for': self.scheduled_for.isoformat() if self.scheduled_for else None,
-            'delivered_at': self.delivered_at.isoformat() if self.delivered_at else None
+            'created_at': self.created_at.strftime('%Y-%m-%dT%H:%M:%SZ') if self.created_at else None,
+            'scheduled_for': self.scheduled_for.strftime('%Y-%m-%dT%H:%M:%SZ') if self.scheduled_for else None,
+            'delivered_at': self.delivered_at.strftime('%Y-%m-%dT%H:%M:%SZ') if self.delivered_at else None
         }
 
 
@@ -312,7 +320,7 @@ class BroadcastMessage(db.Model):
             'banner_url': self.banner_url,
             'recipient_type': self.recipient_type,
             'created_by': self.created_by,
-            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'created_at': self.created_at.strftime('%Y-%m-%dT%H:%M:%SZ') if self.created_at else None,
             'total_recipients': len(self.recipients),
             'read_count': sum(1 for r in self.recipients if r.is_read)
         }

@@ -88,7 +88,7 @@ const AdminComponentsDemo = () => {
         <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Admin Components Demo</h1>
           <p className="text-gray-600">
-            Showcase of reusable Super Admin UI components for the FlexiGym platform
+            Showcase of reusable Super Admin UI components for the SmartGoNext Gym platform
           </p>
         </div>
 

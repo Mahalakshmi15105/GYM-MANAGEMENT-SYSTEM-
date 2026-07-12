@@ -25,7 +25,8 @@ class ActivityLogger:
         gym_id=None,
         user_id=None,
         severity='info',
-        extra_data=None
+        extra_data=None,
+        **kwargs
     ):
         """
         Log an activity with comprehensive context information.
@@ -39,11 +40,16 @@ class ActivityLogger:
             user_id (int, optional): User ID (auto-detected if not provided)
             severity (str): Log severity (info, warning, error, critical)
             extra_data (dict, optional): Additional metadata for the log entry
+            **kwargs: Additional keyword arguments (e.g., details as alias for extra_data)
             
         Returns:
             bool: True if logged successfully, False otherwise
         """
         try:
+            # Support 'details' as an alias for extra_data
+            if extra_data is None and 'details' in kwargs:
+                extra_data = kwargs['details']
+            
             # Auto-detect user and gym context if not provided
             if user_id is None:
                 user_id = get_current_user_id()
@@ -79,7 +85,7 @@ class ActivityLogger:
             return False
     
     @staticmethod
-    def log_authentication(action, user_id, success=True, details=None):
+    def log_authentication(action, user_id, success=True, details=None, **kwargs):
         """
         Log authentication events (login, logout, failed attempts).
         
@@ -88,6 +94,7 @@ class ActivityLogger:
             user_id (int): User ID attempting authentication
             success (bool): Whether the authentication was successful
             details (str, optional): Additional details about the authentication
+            **kwargs: Additional keyword arguments
         """
         severity = 'info' if success else 'warning'
         description = f"User authentication: {action}"
@@ -107,20 +114,22 @@ class ActivityLogger:
             entity_id=user_id,
             user_id=user_id,
             severity=severity,
-            extra_data=extra_data
+            extra_data=extra_data,
+            **kwargs
         )
     
     @staticmethod
-    def log_create(entity_type, entity_id, entity_name=None, gym_id=None, extra_data=None):
+    def log_create(entity_type, entity_id=None, entity_name=None, gym_id=None, extra_data=None, **kwargs):
         """
         Log creation of new entities.
         
         Args:
             entity_type (str): Type of entity created (member, payment, etc.)
-            entity_id (int): ID of the created entity
+            entity_id (int, optional): ID of the created entity
             entity_name (str, optional): Name/title of the created entity
             gym_id (int, optional): Gym context (auto-detected if not provided)
             extra_data (dict, optional): Additional entity data
+            **kwargs: Additional keyword arguments (e.g., details)
         """
         description = f"Created {entity_type}"
         if entity_name:
@@ -133,20 +142,22 @@ class ActivityLogger:
             entity_id=entity_id,
             gym_id=gym_id,
             severity='info',
-            extra_data=extra_data
+            extra_data=extra_data,
+            **kwargs
         )
     
     @staticmethod
-    def log_update(entity_type, entity_id, changes=None, entity_name=None, gym_id=None):
+    def log_update(entity_type, entity_id=None, changes=None, entity_name=None, gym_id=None, **kwargs):
         """
         Log updates to existing entities.
         
         Args:
             entity_type (str): Type of entity updated
-            entity_id (int): ID of the updated entity
+            entity_id (int, optional): ID of the updated entity
             changes (dict, optional): Dictionary of changed fields and values
             entity_name (str, optional): Name/title of the updated entity
             gym_id (int, optional): Gym context (auto-detected if not provided)
+            **kwargs: Additional keyword arguments (e.g., details)
         """
         description = f"Updated {entity_type}"
         if entity_name:
@@ -167,20 +178,22 @@ class ActivityLogger:
             entity_id=entity_id,
             gym_id=gym_id,
             severity='info',
-            extra_data=extra_data
+            extra_data=extra_data,
+            **kwargs
         )
     
     @staticmethod
-    def log_delete(entity_type, entity_id, entity_name=None, gym_id=None, soft_delete=True):
+    def log_delete(entity_type, entity_id=None, entity_name=None, gym_id=None, soft_delete=True, **kwargs):
         """
         Log deletion of entities.
         
         Args:
             entity_type (str): Type of entity deleted
-            entity_id (int): ID of the deleted entity
+            entity_id (int, optional): ID of the deleted entity
             entity_name (str, optional): Name/title of the deleted entity
             gym_id (int, optional): Gym context (auto-detected if not provided)
             soft_delete (bool): Whether this was a soft delete (recoverable)
+            **kwargs: Additional keyword arguments (e.g., details)
         """
         delete_type = "soft deleted" if soft_delete else "permanently deleted"
         description = f"Deleted {entity_type}"
@@ -201,11 +214,12 @@ class ActivityLogger:
             entity_id=entity_id,
             gym_id=gym_id,
             severity=severity,
-            extra_data=extra_data
+            extra_data=extra_data,
+            **kwargs
         )
     
     @staticmethod
-    def log_view(entity_type, entity_id=None, entity_name=None, gym_id=None, view_type='detail'):
+    def log_view(entity_type, entity_id=None, entity_name=None, gym_id=None, view_type='detail', **kwargs):
         """
         Log when entities are viewed (for sensitive data tracking).
         
@@ -215,6 +229,7 @@ class ActivityLogger:
             entity_name (str, optional): Name/title of the viewed entity
             gym_id (int, optional): Gym context (auto-detected if not provided)
             view_type (str): Type of view (list, detail, report, export)
+            **kwargs: Additional keyword arguments
         """
         if view_type == 'list':
             description = f"Viewed {entity_type} list"
@@ -234,11 +249,12 @@ class ActivityLogger:
             entity_id=entity_id,
             gym_id=gym_id,
             severity='info',
-            extra_data=extra_data
+            extra_data=extra_data,
+            **kwargs
         )
     
     @staticmethod
-    def log_export(entity_type, export_format='csv', record_count=None, gym_id=None):
+    def log_export(entity_type, export_format='csv', record_count=None, gym_id=None, **kwargs):
         """
         Log data export operations.
         
@@ -247,6 +263,7 @@ class ActivityLogger:
             export_format (str): Format of export (csv, pdf, excel)
             record_count (int, optional): Number of records exported
             gym_id (int, optional): Gym context (auto-detected if not provided)
+            **kwargs: Additional keyword arguments
         """
         description = f"Exported {entity_type} data"
         if record_count:
@@ -264,11 +281,12 @@ class ActivityLogger:
             entity_type=entity_type,
             gym_id=gym_id,
             severity='info',
-            extra_data=extra_data
+            extra_data=extra_data,
+            **kwargs
         )
     
     @staticmethod
-    def log_system_event(event_type, description, severity='info', extra_data=None):
+    def log_system_event(event_type, description, severity='info', extra_data=None, **kwargs):
         """
         Log system-level events (not tied to specific users or entities).
         
@@ -277,6 +295,7 @@ class ActivityLogger:
             description (str): Description of the event
             severity (str): Event severity (info, warning, error, critical)
             extra_data (dict, optional): Additional event metadata
+            **kwargs: Additional keyword arguments
         """
         ActivityLogger.log_activity(
             action_type='system',
@@ -285,12 +304,13 @@ class ActivityLogger:
             severity=severity,
             extra_data=extra_data,
             user_id=None,  # System events have no specific user
-            gym_id=None   # System events are platform-wide
+            gym_id=None,   # System events are platform-wide
+            **kwargs
         )
     
     @staticmethod
     def log_super_admin_action(action_type, description, target_gym_id=None, 
-                              entity_type=None, entity_id=None, severity='info'):
+                              entity_type=None, entity_id=None, severity='info', **kwargs):
         """
         Log Super Admin specific actions with special handling.
         
@@ -301,6 +321,7 @@ class ActivityLogger:
             entity_type (str, optional): Type of entity being managed
             entity_id (int, optional): ID of the entity being managed
             severity (str): Action severity
+            **kwargs: Additional keyword arguments
         """
         extra_data = {
             'super_admin_action': True,
@@ -314,7 +335,8 @@ class ActivityLogger:
             entity_id=entity_id,
             gym_id=target_gym_id,  # Log under the affected gym's context
             severity=severity,
-            extra_data=extra_data
+            extra_data=extra_data,
+            **kwargs
         )
     
     # Helper methods for request context
@@ -360,15 +382,15 @@ def log_activity(action_type, description, **kwargs):
     """Convenience wrapper for ActivityLogger.log_activity"""
     return ActivityLogger.log_activity(action_type, description, **kwargs)
 
-def log_create(entity_type, entity_id, entity_name=None, **kwargs):
+def log_create(entity_type, entity_id=None, entity_name=None, **kwargs):
     """Convenience wrapper for ActivityLogger.log_create"""
     return ActivityLogger.log_create(entity_type, entity_id, entity_name, **kwargs)
 
-def log_update(entity_type, entity_id, changes=None, entity_name=None, **kwargs):
+def log_update(entity_type, entity_id=None, changes=None, entity_name=None, **kwargs):
     """Convenience wrapper for ActivityLogger.log_update"""
     return ActivityLogger.log_update(entity_type, entity_id, changes, entity_name, **kwargs)
 
-def log_delete(entity_type, entity_id, entity_name=None, **kwargs):
+def log_delete(entity_type, entity_id=None, entity_name=None, **kwargs):
     """Convenience wrapper for ActivityLogger.log_delete"""
     return ActivityLogger.log_delete(entity_type, entity_id, entity_name, **kwargs)
 

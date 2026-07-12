@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import api from '../services/api';
 import { ArrowLeftIcon, EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
@@ -8,6 +8,8 @@ export default function AddMemberPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [membershipPlans, setMembershipPlans] = useState([]);
+  const [loadingPlans, setLoadingPlans] = useState(true);
   const [formData, setFormData] = useState({
     first_name: '',
     last_name: '',
@@ -27,9 +29,47 @@ export default function AddMemberPage() {
     workout_duration_minutes: '120'  // Default 2 hours
   });
 
+  useEffect(() => {
+    fetchMembershipPlans();
+  }, []);
+
+  const fetchMembershipPlans = async () => {
+    try {
+      const response = await api.get('/api/membership-plans');
+      setMembershipPlans(response.data.membership_plans || []);
+    } catch (err) {
+      console.error('Failed to fetch membership plans:', err);
+    } finally {
+      setLoadingPlans(false);
+    }
+  };
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleMembershipPlanChange = (e) => {
+    const selectedPlanName = e.target.value;
+    setFormData(prev => ({ ...prev, membership_plan_name: selectedPlanName }));
+    
+    // Auto-fill dates based on selected plan
+    const selectedPlan = membershipPlans.find(plan => plan.plan_name === selectedPlanName);
+    if (selectedPlan) {
+      const today = new Date();
+      const startDate = today.toISOString().split('T')[0]; // Format: YYYY-MM-DD
+      
+      // Calculate end date based on duration (duration is in days)
+      const endDate = new Date(today);
+      endDate.setDate(today.getDate() + selectedPlan.duration);
+      const endDateStr = endDate.toISOString().split('T')[0];
+      
+      setFormData(prev => ({
+        ...prev,
+        membership_start_date: startDate,
+        membership_end_date: endDateStr
+      }));
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -288,17 +328,40 @@ export default function AddMemberPage() {
                 <label className="block text-xs font-semibold uppercase tracking-wider text-gray-600 mb-2">
                   Membership Plan
                 </label>
-                <input
-                  type="text"
-                  name="membership_plan_name"
-                  value={formData.membership_plan_name}
-                  onChange={handleInputChange}
-                  placeholder="e.g., Premium Monthly, Basic Annual"
-                  className="w-full bg-gray-50 border border-gray-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 rounded-xl px-4 py-3 text-sm text-gray-900 placeholder-gray-500 focus:outline-none transition-all duration-200"
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  Tip: Create plans in <Link to="/membership-plans" className="text-orange-600 hover:underline">Membership Plans</Link> section
-                </p>
+                {loadingPlans ? (
+                  <div className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-500">
+                    Loading plans...
+                  </div>
+                ) : membershipPlans.length === 0 ? (
+                  <div>
+                    <select
+                      name="membership_plan_name"
+                      value={formData.membership_plan_name}
+                      onChange={handleMembershipPlanChange}
+                      disabled
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-500 focus:outline-none"
+                    >
+                      <option value="">No plans available</option>
+                    </select>
+                    <p className="text-xs text-orange-600 mt-1">
+                      No membership plans available. Please create a membership plan first in the <Link to="/membership-plans" className="text-orange-600 hover:underline">Membership Plans</Link> section.
+                    </p>
+                  </div>
+                ) : (
+                  <select
+                    name="membership_plan_name"
+                    value={formData.membership_plan_name}
+                    onChange={handleMembershipPlanChange}
+                    className="w-full bg-gray-50 border border-gray-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 rounded-xl px-4 py-3 text-sm text-gray-900 focus:outline-none transition-all duration-200"
+                  >
+                    <option value="">Select a membership plan</option>
+                    {membershipPlans.map(plan => (
+                      <option key={plan.id} value={plan.plan_name}>
+                        {plan.plan_name} ({plan.duration} days) - ${plan.price}
+                      </option>
+                    ))}
+                  </select>
+                )}
               </div>
               <div>
                 <label className="block text-xs font-semibold uppercase tracking-wider text-gray-600 mb-2">

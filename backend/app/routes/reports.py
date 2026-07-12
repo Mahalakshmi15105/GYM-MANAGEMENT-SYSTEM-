@@ -407,7 +407,7 @@ def get_reports():
     return jsonify({
         'currency': get_gym_currency(gym_id),
         'gym': {
-            'name': gym.name if gym else 'FlexiGym',
+            'name': gym.name if gym else 'SmartGoNext Gym',
             'logo_url': logo_url
         },
         'summary': summary,

@@ -6,7 +6,7 @@ Handles gym management, platform analytics, user oversight, and system administr
 from flask import Blueprint, request, jsonify
 from sqlalchemy import func, desc, and_, or_
 from datetime import datetime, date, timedelta
-from app.extensions import db
+from app.extensions import db, bcrypt
 from app.auth_utils import super_admin_required, get_current_user_id
 from app.super_admin_errors import handle_super_admin_errors, SuperAdminError, validate_super_admin_operation
 from app.activity_logging import ActivityLogger
@@ -369,6 +369,86 @@ def delete_gym(gym_id):
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': 'Failed to delete gym', 'details': str(e)}), 500
+
+
+@admin_bp.route('/gyms/create', methods=['POST'])
+@super_admin_required
+def create_gym():
+    """Create a new gym and gym owner account (Super Admin only)"""
+    try:
+        data = request.get_json() or {}
+        admin_user_id = get_current_user_id()
+        
+        gym_name = data.get('gym_name')
+        gym_address = data.get('gym_address')
+        gym_phone = data.get('gym_phone')
+        owner_name = data.get('name')
+        owner_email = data.get('email')
+        password = data.get('password')
+        
+        # Validate required fields
+        if not all([gym_name, gym_address, gym_phone, owner_name, owner_email, password]):
+            return jsonify({'error': 'Missing required fields (gym_name, gym_address, gym_phone, name, email, password)'}), 400
+        
+        # Check if email already exists
+        if User.query.filter_by(email=owner_email).first():
+            return jsonify({'error': 'Email already registered'}), 400
+        
+        # Generate unique attendance QR code for the gym
+        import uuid
+        attendance_qr = f"GYM{str(uuid.uuid4())[:12].upper()}"
+        
+        # Create Gym with user-provided data
+        new_gym = Gym(
+            name=gym_name,
+            address=gym_address,
+            phone=gym_phone,
+            attendance_qr=attendance_qr,
+            status='Active'  # Super Admin creates gyms as Active
+        )
+        db.session.add(new_gym)
+        db.session.flush()  # Populate the Gym ID before commit
+        
+        # Create User linked to the gym as the owner
+        hashed_password = bcrypt.generate_password_hash(password).decode('utf-8')
+        new_user = User(
+            name=owner_name,
+            email=owner_email,
+            password_hash=hashed_password,
+            role='gym_owner',
+            gym_id=new_gym.id
+        )
+        db.session.add(new_user)
+        db.session.commit()
+        
+        # Log the gym creation
+        try:
+            log_activity(
+                user_id=admin_user_id,
+                gym_id=new_gym.id,
+                action_type='create',
+                entity_type='gym',
+                entity_id=new_gym.id,
+                description=f'Created gym: {gym_name} with owner: {owner_email}'
+            )
+        except Exception as log_error:
+            print(f"Failed to log gym creation: {log_error}")
+        
+        return jsonify({
+            'message': 'Gym and Owner created successfully',
+            'gym': new_gym.to_dict(),
+            'user': {
+                'id': new_user.id,
+                'name': new_user.name,
+                'email': new_user.email,
+                'role': new_user.role,
+                'gym_id': new_user.gym_id
+            }
+        }), 201
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': 'Failed to create gym', 'message': str(e)}), 500
 
 
 # =============================================================================
@@ -1522,8 +1602,9 @@ def list_users():
                 Gym.name.ilike(f'%{search_query}%')
             ))
         
-        # Handle status filter (this would require adding an 'active' field to User model)
-        # For now, we'll assume all users are active unless they have a specific disabled flag
+        # Handle status filter
+        if status_filter and status_filter != 'all':
+            query = query.filter(User.status == status_filter)
         
         # Order by created_at desc, then by name
         query = query.order_by(desc(User.created_at), User.name)
@@ -1546,9 +1627,8 @@ def list_users():
                 user_dict['gym_name'] = None
                 user_dict['gym_status'] = None
             
-            # Add last login info (would need to track this in activity logs)
-            last_login = get_user_last_login(user.id)
-            user_dict['last_login_at'] = last_login
+            # Add last login info from user.last_login field
+            user_dict['last_login_at'] = user.last_login.isoformat() if user.last_login else None
             
             # Add user activity metrics
             user_dict['activity_stats'] = get_user_activity_stats(user.id)

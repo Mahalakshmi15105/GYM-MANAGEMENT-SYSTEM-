@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { PhotoIcon, PaperClipIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
+import { Link } from 'react-router-dom';
+import { PhotoIcon, PaperClipIcon, CheckCircleIcon, ArrowLeftIcon } from '@heroicons/react/24/outline';
 import api from '../services/api';
 
 export default function MemberMessagesPage() {
@@ -11,13 +12,16 @@ export default function MemberMessagesPage() {
     fetchBroadcasts();
   }, []);
 
+  const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+
   const fetchBroadcasts = async () => {
     try {
       setLoading(true);
       const response = await api.get('/api/broadcasts/member');
-      setBroadcasts(response.data.broadcasts);
+      setBroadcasts(response.data.broadcasts || []);
     } catch (error) {
       console.error('Failed to fetch broadcasts:', error);
+      setBroadcasts([]);
     } finally {
       setLoading(false);
     }
@@ -59,9 +63,17 @@ export default function MemberMessagesPage() {
     <div className="p-6">
       {!selectedBroadcast ? (
         <>
-          <div className="mb-6">
-            <h1 className="text-2xl font-bold text-gray-900">Messages</h1>
-            <p className="text-gray-600 mt-1">Announcements from your gym</p>
+          <div className="mb-6 flex items-center gap-4">
+            <Link
+              to="/member/dashboard"
+              className="text-gray-500 hover:text-gray-700 transition-colors"
+            >
+              <ArrowLeftIcon className="w-6 h-6" />
+            </Link>
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">Messages</h1>
+              <p className="text-gray-600 mt-1">Announcements from your gym</p>
+            </div>
           </div>
 
           {broadcasts.length === 0 ? (
@@ -125,7 +137,7 @@ export default function MemberMessagesPage() {
 
             {selectedBroadcast.banner_url && (
               <img
-                src={`http://127.0.0.1:5000${selectedBroadcast.banner_url}`}
+                src={`${API_BASE_URL}${selectedBroadcast.banner_url}`}
                 alt="Banner"
                 className="w-full h-64 object-cover rounded-lg mb-4"
               />
@@ -141,7 +153,7 @@ export default function MemberMessagesPage() {
                 <div className="flex items-center gap-2">
                   <PaperClipIcon className="h-5 w-5 text-gray-600" />
                   <a
-                    href={`http://127.0.0.1:5000${selectedBroadcast.attachment_url}`}
+                    href={`${API_BASE_URL}${selectedBroadcast.attachment_url}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-orange-600 hover:text-orange-700 font-medium"

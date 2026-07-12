@@ -10,7 +10,6 @@ import {
   LanguageIcon,
   CheckCircleIcon,
   ExclamationCircleIcon,
-  QrCodeIcon,
 } from '@heroicons/react/24/outline';
 
 export default function GymOwnerSettingsPage() {
@@ -213,37 +212,6 @@ export default function GymOwnerSettingsPage() {
                 Language Code: {gymData?.language || 'en'}
               </p>
             </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Attendance QR Code Section */}
-      <div className="bg-white border border-gray-200 p-6 rounded-2xl shadow-sm">
-        <h2 className="text-lg font-bold text-gray-900 mb-6 flex items-center gap-2">
-          <QrCodeIcon className="w-5 h-5 text-orange-500" /> {t('settings.qrCode')}
-        </h2>
-        
-        <div className="space-y-4">
-          <p className="text-sm text-gray-600">
-            {t('settings.qrCodeDescription')}
-          </p>
-          
-          <button
-            onClick={() => navigate('/gym-qr')}
-            className="bg-orange-600 hover:bg-orange-700 text-white font-medium py-3 px-6 rounded-xl transition-colors"
-          >
-            {t('settings.manageQrCode')}
-          </button>
-          
-          <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-            <p className="text-sm text-blue-900">
-              <span className="font-medium">{t('settings.status')}:</span> {gymData?.attendance_qr ? t('settings.qrActive') : t('settings.noQrCode')}
-            </p>
-            {gymData?.attendance_qr && (
-              <p className="text-sm text-blue-700 mt-1">
-                QR Code: <span className="font-mono">{gymData.attendance_qr}</span>
-              </p>
-            )}
           </div>
         </div>
       </div>

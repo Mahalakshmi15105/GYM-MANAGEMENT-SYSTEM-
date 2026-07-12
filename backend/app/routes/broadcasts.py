@@ -13,7 +13,8 @@ broadcasts_bp = Blueprint('broadcasts', __name__)
 def get_current_gym_id():
     """Extract gym_id from JWT token for multi-tenant isolation"""
     claims = get_jwt()
-    return claims.get('gym_id')
+    gym_id = claims.get('gym_id')
+    return int(gym_id) if gym_id else None
 
 
 def get_current_user_id():
@@ -281,19 +282,31 @@ def delete_broadcast(broadcast_id):
 def get_member_broadcasts():
     """Get all broadcasts for the current member"""
     try:
-        # Get member from JWT
-        from flask_jwt_extended import get_jwt
+        # Get member info from JWT
         claims = get_jwt()
         member_id = claims.get('member_id')
+        gym_id = claims.get('gym_id')
         
         if not member_id:
             return jsonify({'error': 'Member ID not found in token'}), 400
         
-        # Get all broadcasts where this member is a recipient
-        recipient_records = BroadcastRecipient.query.filter_by(member_id=member_id).all()
-        broadcast_ids = [r.broadcast_id for r in recipient_records]
+        # Ensure IDs are integers
+        member_id = int(member_id)
+        gym_id = int(gym_id) if gym_id else None
         
-        broadcasts = BroadcastMessage.query.filter(BroadcastMessage.id.in_(broadcast_ids)).order_by(BroadcastMessage.created_at.desc()).all()
+        # Get all broadcasts where this member is a recipient
+        # Filter by gym_id as well for multi-tenant isolation
+        query = BroadcastMessage.query.join(BroadcastRecipient).filter(
+            BroadcastRecipient.member_id == member_id
+        )
+        
+        if gym_id:
+            query = query.filter(BroadcastMessage.gym_id == gym_id)
+            
+        broadcasts = query.order_by(BroadcastMessage.created_at.desc()).all()
+        
+        # Get recipient records for read status
+        recipient_records = BroadcastRecipient.query.filter_by(member_id=member_id).all()
         
         # Add read status to each broadcast
         result = []
@@ -301,7 +314,7 @@ def get_member_broadcasts():
             recipient = next((r for r in recipient_records if r.broadcast_id == broadcast.id), None)
             broadcast_dict = broadcast.to_dict()
             broadcast_dict['is_read'] = recipient.is_read if recipient else False
-            broadcast_dict['read_at'] = recipient.read_at.isoformat() if recipient and recipient.read_at else None
+            broadcast_dict['read_at'] = recipient.read_at.strftime('%Y-%m-%dT%H:%M:%SZ') if recipient and recipient.read_at else None
             result.append(broadcast_dict)
         
         return jsonify({
@@ -325,6 +338,9 @@ def mark_broadcast_as_read(broadcast_id):
         if not member_id:
             return jsonify({'error': 'Member ID not found in token'}), 400
         
+        # Ensure member_id is integer
+        member_id = int(member_id)
+        
         # Find the recipient record
         recipient = BroadcastRecipient.query.filter_by(
             broadcast_id=broadcast_id,
@@ -339,7 +355,10 @@ def mark_broadcast_as_read(broadcast_id):
         recipient.read_at = datetime.utcnow()
         db.session.commit()
         
-        return jsonify({'message': 'Broadcast marked as read'}), 200
+        return jsonify({
+            'message': 'Broadcast marked as read',
+            'read_at': recipient.read_at.strftime('%Y-%m-%dT%H:%M:%SZ')
+        }), 200
         
     except Exception as e:
         db.session.rollback()

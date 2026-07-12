@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { AdminDataTable, AdminActionModal, AdminMetricCard } from '../components/admin';
+import { AdminDataTable, AdminMetricCard } from '../components/admin';
 import api from '../services/api';
 import {
   UsersIcon,
@@ -18,7 +18,6 @@ const UserManagement = () => {
     gym_id: '',
     search: ''
   });
-  const [modalState, setModalState] = useState({ isOpen: false, type: null, user: null });
   const [metrics, setMetrics] = useState({ total: 0, active: 0, inactive: 0, super_admins: 0 });
 
   useEffect(() => {
@@ -57,26 +56,6 @@ const UserManagement = () => {
     }
   };
 
-  const handleUserAction = async (action, user) => {
-    try {
-      setModalState(prev => ({ ...prev, loading: true }));
-      
-      switch (action) {
-        case 'disable':
-          await api.put(`/api/admin/users/${user.id}/disable`);
-          break;
-        case 'enable':
-          await api.put(`/api/admin/users/${user.id}/enable`);
-          break;
-      }
-      
-      await fetchUsers();
-      setModalState({ isOpen: false, type: null, user: null });
-    } catch (err) {
-      setError(err.response?.data?.error || `Failed to ${action} user`);
-    }
-  };
-
   const columns = [
     { key: 'name', label: 'Name' },
     { key: 'email', label: 'Email' },
@@ -97,48 +76,24 @@ const UserManagement = () => {
     { 
       key: 'status', 
       label: 'Status',
-      render: (value) => (
-        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-          value === 'Active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-        }`}>
-          {value}
-        </span>
-      )
+      render: (value) => {
+        const statusColors = {
+          'Active': 'bg-green-100 text-green-800',
+          'Inactive': 'bg-gray-100 text-gray-800',
+          'Suspended': 'bg-red-100 text-red-800'
+        };
+        
+        return (
+          <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusColors[value] || 'bg-gray-100 text-gray-800'}`}>
+            {value || 'Unknown'}
+          </span>
+        );
+      }
     },
     {
-      key: 'last_login',
+      key: 'last_login_at',
       label: 'Last Login',
       render: (value) => value ? new Date(value).toLocaleString() : 'Never'
-    },
-    {
-      key: 'actions',
-      label: 'Actions',
-      sortable: false,
-      render: (_, user) => (
-        <div className="flex gap-2">
-          {user.status === 'Active' ? (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setModalState({ isOpen: true, type: 'disable', user });
-              }}
-              className="px-2 py-1 bg-red-500 text-white rounded text-xs hover:bg-red-600"
-            >
-              Disable
-            </button>
-          ) : (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setModalState({ isOpen: true, type: 'enable', user });
-              }}
-              className="px-2 py-1 bg-green-500 text-white rounded text-xs hover:bg-green-600"
-            >
-              Enable
-            </button>
-          )}
-        </div>
-      )
     }
   ];
 
@@ -156,8 +111,10 @@ const UserManagement = () => {
       key: 'status',
       label: 'Status',
       options: [
+        { value: 'all', label: 'All Status' },
         { value: 'Active', label: 'Active' },
-        { value: 'Inactive', label: 'Inactive' }
+        { value: 'Inactive', label: 'Inactive' },
+        { value: 'Suspended', label: 'Suspended' }
       ]
     }
   ];
@@ -213,16 +170,6 @@ const UserManagement = () => {
           />
         </section>
       </div>
-
-      <AdminActionModal
-        isOpen={modalState.isOpen}
-        onClose={() => setModalState({ isOpen: false, type: null, user: null })}
-        onConfirm={() => handleUserAction(modalState.type, modalState.user)}
-        title={`${modalState.type === 'disable' ? 'Disable' : 'Enable'} User`}
-        message={`Are you sure you want to ${modalState.type} ${modalState.user?.name}?`}
-        confirmText={modalState.type === 'disable' ? 'Disable' : 'Enable'}
-        type={modalState.type === 'disable' ? 'warning' : 'info'}
-      />
     </div>
   );
 };

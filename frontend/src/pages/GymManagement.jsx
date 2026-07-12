@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { AdminDataTable, AdminMetricCard, AdminActionModal } from '../components/admin';
 import api from '../services/api';
 import {
@@ -8,7 +9,8 @@ import {
   ClockIcon,
   NoSymbolIcon,
   ExclamationTriangleIcon,
-  XMarkIcon
+  XMarkIcon,
+  PlusIcon
 } from '@heroicons/react/24/outline';
 
 /**
@@ -16,6 +18,7 @@ import {
  * Handles gym approval, suspension, reactivation, and deletion workflows
  */
 const GymManagement = () => {
+  const navigate = useNavigate();
   const [gyms, setGyms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -305,14 +308,23 @@ const GymManagement = () => {
                 Manage gym registrations, approvals, and account status across the platform
               </p>
             </div>
-            <button
-              onClick={fetchGyms}
-              disabled={loading}
-              className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 disabled:opacity-50 transition-colors flex items-center gap-2"
-            >
-              <ArrowPathIcon className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-              Refresh
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => navigate('/admin/gyms/add')}
+                className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors flex items-center gap-2"
+              >
+                <PlusIcon className="w-4 h-4" />
+                Add Gym
+              </button>
+              <button
+                onClick={fetchGyms}
+                disabled={loading}
+                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 disabled:opacity-50 transition-colors flex items-center gap-2"
+              >
+                <ArrowPathIcon className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                Refresh
+              </button>
+            </div>
           </div>
         </div>
 

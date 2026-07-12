@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
-import { ChartBarIcon, PlusIcon } from '@heroicons/react/24/outline';
+import { ChartBarIcon, PlusIcon, QrCodeIcon, DocumentArrowDownIcon, PrinterIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 
 export default function AttendancePage() {
     const { user } = useAuth();
@@ -14,9 +14,17 @@ export default function AttendancePage() {
     const [dateRange, setDateRange] = useState({ start: '', end: '' });
     const [selectedView, setSelectedView] = useState('today');
     const [deleteModal, setDeleteModal] = useState({ isOpen: false, record: null });
+    
+    // QR Code state
+    const [qrData, setQrData] = useState(null);
+    const [qrImageUrl, setQrImageUrl] = useState('');
+    const [qrLoading, setQrLoading] = useState(true);
+    const [qrError, setQrError] = useState('');
+    const [showQrSection, setShowQrSection] = useState(false);
 
     useEffect(() => {
         fetchAttendance();
+        fetchQRData();
     }, [selectedView]);
 
     const fetchAttendance = async () => {
@@ -134,6 +142,65 @@ export default function AttendancePage() {
         }
     };
 
+    const fetchQRData = async () => {
+        try {
+            const response = await api.get('/api/gym/qr/info');
+            setQrData(response.data);
+            
+            if (response.data.has_qr) {
+                const imageResponse = await api.get('/api/gym/qr/image', {
+                    responseType: 'blob'
+                });
+                const imageUrl = URL.createObjectURL(imageResponse.data);
+                setQrImageUrl(imageUrl);
+            }
+        } catch (err) {
+            console.error('Failed to fetch QR data:', err);
+            setQrError(err.response?.data?.error || 'Failed to load QR data');
+        } finally {
+            setQrLoading(false);
+        }
+    };
+
+    const handleDownloadQR = async () => {
+        try {
+            const response = await api.get('/api/gym/qr/image', {
+                responseType: 'blob'
+            });
+            
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `gym-qr-code-${qrData.gym?.name || 'gym'}.png`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+        } catch (err) {
+            console.error('Failed to download QR:', err);
+            setQrError('Failed to download QR code');
+        }
+    };
+
+    const handlePrintQR = async () => {
+        try {
+            const response = await api.get('/api/gym/qr/printable', {
+                responseType: 'blob'
+            });
+            
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const printWindow = window.open(url, '_blank');
+            if (printWindow) {
+                printWindow.onload = () => {
+                    printWindow.print();
+                };
+            }
+        } catch (err) {
+            console.error('Failed to print QR:', err);
+            setQrError('Failed to generate printable QR');
+        }
+    };
+
     return (
         <div className="space-y-8">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -150,6 +217,12 @@ export default function AttendancePage() {
                     >
                         <ChartBarIcon className="w-4 h-4 mr-2" /> Reports
                     </Link>
+                    <button
+                        onClick={() => setShowQrSection(!showQrSection)}
+                        className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 rounded-xl transition-all duration-200 text-sm shadow-sm flex items-center gap-2"
+                    >
+                        <QrCodeIcon className="w-4 h-4 mr-2" /> Attendance QR
+                    </button>
                     <Link
                         to="/attendance/checkin"
                         className="bg-orange-600 hover:bg-orange-700 text-white font-bold px-6 py-3 rounded-xl transition-all duration-200 self-start md:self-auto text-center shadow-sm flex items-center gap-2"
@@ -243,6 +316,91 @@ export default function AttendancePage() {
             {error && (
                 <div className="bg-red-50 border border-red-200 text-red-700 text-sm p-4 rounded-xl">
                     {error}
+                </div>
+            )}
+
+            {/* Attendance QR Code Section */}
+            {showQrSection && (
+                <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
+                    <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                            <QrCodeIcon className="w-5 h-5 text-orange-500" />
+                            Attendance QR Code
+                        </h3>
+                        <button
+                            onClick={() => setShowQrSection(false)}
+                            className="text-gray-400 hover:text-gray-600"
+                        >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
+
+                    {qrError && (
+                        <div className="bg-red-50 border border-red-200 text-red-700 text-sm p-4 rounded-xl mb-4 flex items-start gap-3">
+                            <ExclamationTriangleIcon className="w-5 h-5 flex-shrink-0 mt-0.5" />
+                            <p className="text-sm">{qrError}</p>
+                        </div>
+                    )}
+
+                    {qrLoading ? (
+                        <div className="text-center py-8">
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600 mx-auto"></div>
+                            <p className="mt-2 text-sm text-gray-600">Loading QR code...</p>
+                        </div>
+                    ) : qrData?.has_qr ? (
+                        <div className="flex flex-col md:flex-row gap-6 items-start">
+                            <div className="bg-gray-50 border-2 border-dashed border-gray-300 rounded-xl p-6 flex flex-col items-center">
+                                <p className="text-xs text-gray-600 uppercase tracking-wider mb-4">QR Code</p>
+                                {qrImageUrl && (
+                                    <img 
+                                        src={qrImageUrl} 
+                                        alt="Gym Attendance QR Code" 
+                                        className="w-48 h-48 object-contain mb-4"
+                                        onError={() => setQrError('Failed to load QR image')}
+                                    />
+                                )}
+                                <p className="text-xs text-gray-500 mt-2 text-center">
+                                    Scan this QR code to check in at {qrData.gym?.name || 'your gym'}
+                                </p>
+                            </div>
+
+                            <div className="flex-1 space-y-4">
+                                <div className="flex flex-col sm:flex-row gap-3">
+                                    <button
+                                        onClick={handleDownloadQR}
+                                        className="flex items-center justify-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-3 px-6 rounded-xl transition-colors"
+                                    >
+                                        <DocumentArrowDownIcon className="w-5 h-5" />
+                                        Download QR Code
+                                    </button>
+                                    <button
+                                        onClick={handlePrintQR}
+                                        className="flex items-center justify-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-3 px-6 rounded-xl transition-colors"
+                                    >
+                                        <PrinterIcon className="w-5 h-5" />
+                                        Print QR Code
+                                    </button>
+                                </div>
+
+                                <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                                    <h4 className="font-semibold text-blue-900 mb-2 text-sm">How to Use</h4>
+                                    <ol className="text-sm text-blue-800 space-y-1 list-decimal list-inside">
+                                        <li>Print the QR code and display it at your gym entrance</li>
+                                        <li>Members will scan this QR code to check in</li>
+                                        <li>Each member can only check in once per day</li>
+                                    </ol>
+                                </div>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-6">
+                            <p className="text-yellow-800 text-sm">
+                                No QR code generated yet. Please contact support to generate your gym's attendance QR code.
+                            </p>
+                        </div>
+                    )}
                 </div>
             )}
 

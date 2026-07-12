@@ -33,11 +33,11 @@ describe('Sidebar', () => {
   });
 
   describe('Basic Rendering', () => {
-    it('should render the FlexiGym brand', () => {
+    it('should render the SmartGoNext Gym brand', () => {
       render(<TestSidebar />);
       
       expect(screen.getByText('🏋️‍♂️')).toBeInTheDocument();
-      expect(screen.getByText('FlexiGym')).toBeInTheDocument();
+      expect(screen.getByText('SmartGoNext Gym')).toBeInTheDocument();
     });
 
     it('should always render the Dashboard link', () => {

@@ -7,7 +7,6 @@ import {
   Cog6ToothIcon,
   ChartBarIcon,
   BellIcon,
-  LockClosedIcon,
 } from "@heroicons/react/24/outline";
 
 const SystemSettings = () => {
@@ -21,11 +20,6 @@ const SystemSettings = () => {
   const [editValues, setEditValues] = useState({});
 
   const settingsCategories = {
-    security: {
-      label: "Security Settings",
-      icon: <LockClosedIcon className="w-6 h-6" />,
-      color: "red",
-    },
     features: {
       label: "Platform Features",
       icon: <Cog6ToothIcon className="w-6 h-6" />,
@@ -44,18 +38,6 @@ const SystemSettings = () => {
   };
 
   const mockSettings = {
-    "security.max_login_attempts": {
-      value: "5",
-      type: "number",
-      category: "security",
-      description: "Maximum login attempts before lockout",
-    },
-    "security.session_timeout": {
-      value: "3600",
-      type: "number",
-      category: "security",
-      description: "Session timeout in seconds",
-    },
     "features.gym_approval_required": {
       value: "true",
       type: "boolean",

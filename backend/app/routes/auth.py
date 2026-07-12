@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify
 from app.extensions import db, bcrypt
 from app.models import Gym, User, Member
-from flask_jwt_extended import create_access_token
+from flask_jwt_extended import create_access_token, jwt_required
 from app.activity_logging import ActivityLogger
 import traceback
 
@@ -94,6 +94,39 @@ def register():
         print(f"Full traceback: {traceback.format_exc()}")
         return jsonify({'error': 'Registration failed', 'message': str(e), 'details': traceback.format_exc()}), 500
 
+@auth_bp.route('/logout', methods=['POST'])
+@jwt_required()
+def logout():
+    """Handle logout - set gym operational status to CLOSED for gym owners"""
+    try:
+        from flask_jwt_extended import get_jwt_identity
+        from app.models import User, Gym
+        
+        user_id = get_jwt_identity()
+        print(f"DEBUG: Logout request - User ID: {user_id}")
+        user = User.query.get(int(user_id))
+        
+        if user and user.role == 'gym_owner' and user.gym_id:
+            gym = Gym.query.get(user.gym_id)
+            if gym:
+                print(f"DEBUG: Gym owner logout - User ID: {user.id}, Gym ID: {gym.id}, Current operational_status: {gym.operational_status}")
+                gym.operational_status = 'Closed'
+                print(f"DEBUG: Set gym operational_status to: {gym.operational_status}")
+                db.session.commit()
+                print(f"DEBUG: Committed changes to database")
+            else:
+                print(f"DEBUG: Gym not found with ID: {user.gym_id}")
+        else:
+            print(f"DEBUG: User is not gym owner or has no gym_id. User role: {user.role if user else 'None'}, gym_id: {user.gym_id if user else 'None'}")
+        
+        return jsonify({'message': 'Logout successful'}), 200
+    except Exception as e:
+        print(f"DEBUG: Exception in logout: {str(e)}")
+        import traceback
+        print(f"DEBUG: Traceback: {traceback.format_exc()}")
+        return jsonify({'error': 'Logout failed', 'details': str(e)}), 500
+
+
 @auth_bp.route('/login', methods=['POST'])
 def login():
     data = request.get_json() or {}
@@ -117,6 +150,19 @@ def login():
                 return jsonify({
                     'error': 'Your gym account has been suspended or deactivated. Please contact the platform administrator.'
                 }), 403
+        
+        # Update last login timestamp
+        from datetime import datetime
+        user.last_login = datetime.utcnow()
+        
+        # Set gym operational status to OPEN when gym owner logs in
+        if user.role == 'gym_owner' and gym:
+            print(f"DEBUG: Gym owner login - User ID: {user.id}, Gym ID: {gym.id}, Current operational_status: {gym.operational_status}")
+            gym.operational_status = 'Open'
+            print(f"DEBUG: Set gym operational_status to: {gym.operational_status}")
+        
+        db.session.commit()
+        print(f"DEBUG: Committed changes to database")
         
         gym_name = gym.name if gym else None
         gym_address = gym.address if gym else None

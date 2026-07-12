@@ -7,7 +7,8 @@ export default function GymLogo({
   className = "w-8 h-8", 
   showFallback = true,
   showGymName = false,
-  gymNameClassName = "text-sm font-medium text-gray-900"
+  gymNameClassName = "text-sm font-medium text-gray-900",
+  showPoweredBy = false
 }) {
   const { isAuthenticated, user } = useAuth();
   const [logoUrl, setLogoUrl] = useState(null);
@@ -53,6 +54,7 @@ export default function GymLogo({
           <span className="text-gray-400 text-xs">...</span>
         </div>
         {showGymName && <div className="h-4 w-24 bg-gray-200 rounded mt-2 animate-pulse"></div>}
+        {showPoweredBy && <div className="h-3 w-20 bg-gray-200 rounded mt-1 animate-pulse"></div>}
       </div>
     ) : null;
   }
@@ -63,7 +65,8 @@ export default function GymLogo({
         <div className={`${className} bg-orange-100 border border-orange-200 rounded-lg flex items-center justify-center`}>
           <HeartIcon className="text-orange-600" style={{ width: '70%', height: '70%' }} />
         </div>
-        {showGymName && <span className={gymNameClassName}>FlexiGym</span>}
+        {showGymName && <span className={gymNameClassName}>SmartGoNext Gym</span>}
+        {showPoweredBy && <span className="text-xs text-gray-500 mt-1">Powered by SmartGoNext</span>}
       </div>
     ) : null;
   }
@@ -79,6 +82,7 @@ export default function GymLogo({
       {showGymName && gymName && (
         <span className={gymNameClassName}>{gymName}</span>
       )}
+      {showPoweredBy && <span className="text-xs text-gray-500 mt-1">Powered by SmartGoNext</span>}
     </div>
   );
 }

@@ -1,8 +1,8 @@
-﻿from flask import Blueprint, request, jsonify, send_file
-from flask_jwt_extended import jwt_required, get_jwt
+from flask import Blueprint, request, jsonify, send_file
+from flask_jwt_extended import jwt_required, get_jwt, get_jwt_identity
 from sqlalchemy import or_
 from app.extensions import db, bcrypt
-from app.models import Member, MembershipPlan
+from app.models import Member, MembershipPlan, Gym
 from app.activity_logging import ActivityLogger
 from datetime import datetime
 import openpyxl
@@ -15,7 +15,8 @@ members_bp = Blueprint('members', __name__)
 def get_current_gym_id():
     """Extract gym_id from JWT token for multi-tenant isolation"""
     claims = get_jwt()
-    return claims.get('gym_id')
+    gym_id = claims.get('gym_id')
+    return int(gym_id) if gym_id else None
 
 @members_bp.route('', methods=['GET'])
 @jwt_required()
@@ -633,245 +634,168 @@ def bulk_upload_members():
         membership_plans = MembershipPlan.query.filter_by(gym_id=gym_id).all()
         existing_plan_names = {plan.plan_name.lower(): plan.plan_name for plan in membership_plans}
         
-        print(f"DEBUG: Gym ID: {gym_id}")
-        print(f"DEBUG: Existing membership plans: {existing_plan_names}")
-        print(f"DEBUG: Total rows in file: {len(data_rows)}")
-        
-        # Track validation errors
+        # Track validation errors and valid members
         errors = []
         valid_members = []
         
-        # Track emails and phones in current upload
+        # Track emails and phones in current upload to prevent duplicates within the file
         upload_emails = {}
         upload_phones = {}
         
-        for row_num, row in enumerate(data_rows, start=2):  # Start from row 2 (after header)
+        def parse_date(date_val):
+            if not date_val:
+                return None
+            if isinstance(date_val, datetime):
+                return date_val.date()
+            
+            date_str = str(date_val).strip()
+            for fmt in ('%d-%m-%Y', '%Y-%m-%d', '%d/%m/%Y', '%Y/%m/%d'):
+                try:
+                    return datetime.strptime(date_str, fmt).date()
+                except ValueError:
+                    continue
+            return None
+
+        def parse_workout_duration(duration_val):
+            if not duration_val:
+                return 120 # Default
+            
+            duration_str = str(duration_val).lower().strip()
+            
+            # Direct mapping for template consistency
+            mapping = {
+                '30 minutes': 30,
+                '1 hour': 60,
+                '1 hour 30 minutes': 90,
+                '2 hours': 120,
+                '2 hours 30 minutes': 150
+            }
+            if duration_str in mapping:
+                return mapping[duration_str]
+            
+            # Try to extract numbers
+            import re
+            numbers = re.findall(r'\d+', duration_str)
+            if not numbers:
+                return 120
+            
+            if 'hour' in duration_str and 'minute' in duration_str:
+                return int(numbers[0]) * 60 + int(numbers[1])
+            elif 'hour' in duration_str:
+                return int(numbers[0]) * 60
+            else:
+                return int(numbers[0])
+
+        for row_num, row in enumerate(data_rows, start=2):
             if not row or all(cell is None for cell in row):
-                print(f"DEBUG: Row {row_num} is empty, skipping")
-                continue  # Skip empty rows
+                continue
             
             try:
-                first_name = str(row[0]).strip() if row[0] else ''
-                last_name = str(row[1]).strip() if row[1] else ''
-                gender = str(row[2]).strip() if row[2] else ''
-                dob = str(row[3]).strip() if row[3] else ''
-                phone = str(row[4]).strip() if row[4] else ''
-                email = str(row[5]).strip().lower() if row[5] else ''
-                address = str(row[6]).strip() if row[6] else ''
-                password = str(row[7]).strip() if row[7] else ''
-                emergency_contact_name = str(row[8]).strip() if row[8] else ''
-                emergency_contact_phone = str(row[9]).strip() if row[9] else ''
-                membership_plan_name = str(row[10]).strip() if row[10] else ''
-                status = str(row[11]).strip() if row[11] else ''
-                start_date = str(row[12]).strip() if row[12] else ''
-                end_date = str(row[13]).strip() if row[13] else ''
-                workout_duration = str(row[14]).strip() if row[14] else ''
-                medical_notes = str(row[15]).strip() if row[15] else ''
-                
-                print(f"DEBUG: Processing row {row_num}: {first_name} {last_name}, Plan: {membership_plan_name}")
-                print(f"DEBUG: Row {row_num} data - Phone: {phone}, Email: {email}, Password: {'*' * len(password) if password else 'None'}")
-                
-                # Validation
+                first_name = str(row[0]).strip() if row[0] is not None else ''
+                last_name = str(row[1]).strip() if row[1] is not None else ''
+                gender = str(row[2]).strip() if row[2] is not None else ''
+                dob_val = row[3]
+                phone = str(row[4]).strip() if row[4] is not None else ''
+                email = str(row[5]).strip().lower() if row[5] is not None else ''
+                address = str(row[6]).strip() if row[6] is not None else ''
+                password = str(row[7]).strip() if row[7] is not None else ''
+                emergency_name = str(row[8]).strip() if row[8] is not None else ''
+                emergency_phone = str(row[9]).strip() if row[9] is not None else ''
+                plan_name = str(row[10]).strip() if row[10] is not None else ''
+                status = str(row[11]).strip() if row[11] is not None else 'Active'
+                start_date_val = row[12]
+                end_date_val = row[13]
+                duration_val = row[14]
+                medical_notes = str(row[15]).strip() if row[15] is not None else ''
+
+                # Validations
                 if not first_name:
-                    errors.append({'row': row_num, 'name': first_name, 'error': 'First Name is required'})
-                    print(f"DEBUG: Row {row_num} failed - First Name required")
+                    errors.append({'row': row_num, 'error': 'First Name is required'})
                     continue
-                
                 if not phone:
-                    errors.append({'row': row_num, 'name': first_name, 'error': 'Phone Number is required'})
+                    errors.append({'row': row_num, 'error': 'Phone Number is required'})
                     continue
-                
-                # Phone format validation (min 10 digits)
-                phone_digits = ''.join(filter(str.isdigit, phone))
-                if len(phone_digits) < 10:
-                    errors.append({'row': row_num, 'name': first_name, 'error': 'Phone number must have at least 10 digits'})
-                    continue
-                
-                # Check duplicate phone within upload
-                if phone in upload_phones:
-                    errors.append({'row': row_num, 'name': first_name, 'error': 'Duplicate phone within upload'})
-                    continue
-                upload_phones[phone] = row_num
-                
-                # Check existing phone in database
-                if phone in existing_phones:
-                    errors.append({'row': row_num, 'name': first_name, 'error': 'Phone already exists in database'})
-                    continue
-                
                 if not email:
-                    errors.append({'row': row_num, 'name': first_name, 'error': 'Email is required'})
+                    errors.append({'row': row_num, 'error': 'Email is required'})
                     continue
-                
-                # Email format validation
-                if '@' not in email or '.' not in email:
-                    errors.append({'row': row_num, 'name': first_name, 'error': 'Invalid email format'})
-                    continue
-                
-                # Check duplicate email within upload
-                if email in upload_emails:
-                    errors.append({'row': row_num, 'name': first_name, 'error': 'Duplicate email within upload'})
-                    continue
-                upload_emails[email] = row_num
-                
-                # Check existing email in database
-                if email in existing_emails:
-                    errors.append({'row': row_num, 'name': first_name, 'error': 'Email already exists in database'})
-                    continue
-                
                 if not password:
-                    errors.append({'row': row_num, 'name': first_name, 'error': 'Password is required'})
+                    errors.append({'row': row_num, 'error': 'Password is required'})
                     continue
                 
-                if not membership_plan_name:
-                    errors.append({'row': row_num, 'name': first_name, 'error': 'Membership Plan Name is required'})
+                # Check duplicates in DB
+                if email in existing_emails:
+                    errors.append({'row': row_num, 'error': f'Email {email} already exists'})
+                    continue
+                if phone in existing_phones:
+                    errors.append({'row': row_num, 'error': f'Phone {phone} already exists'})
                     continue
                 
-                # Validate membership plan exists in database
-                if membership_plan_name.lower() not in existing_plan_names:
-                    errors.append({
-                        'row': row_num, 
-                        'name': first_name, 
-                        'error': f'Membership Plan "{membership_plan_name}" not found. Available plans: {", ".join(existing_plan_names.values())}'
-                    })
+                # Check duplicates in file
+                if email in upload_emails:
+                    errors.append({'row': row_num, 'error': f'Duplicate email {email} in file'})
+                    continue
+                if phone in upload_phones:
+                    errors.append({'row': row_num, 'error': f'Duplicate phone {phone} in file'})
                     continue
                 
-                if not status:
-                    errors.append({'row': row_num, 'name': first_name, 'error': 'Status is required'})
+                upload_emails[email] = row_num
+                upload_phones[phone] = row_num
+
+                # Parse dates
+                parsed_start = parse_date(start_date_val)
+                parsed_end = parse_date(end_date_val)
+                parsed_dob = parse_date(dob_val)
+
+                if not parsed_start or not parsed_end:
+                    errors.append({'row': row_num, 'error': 'Invalid Start or End Date format'})
+                    continue
+
+                # Plan validation
+                if plan_name.lower() not in existing_plan_names:
+                    errors.append({'row': row_num, 'error': f'Plan "{plan_name}" not found'})
                     continue
                 
-                if status not in ['Active', 'Inactive', 'Expired']:
-                    errors.append({'row': row_num, 'name': first_name, 'error': 'Invalid Status. Must be Active, Inactive, or Expired'})
-                    continue
+                actual_plan_name = existing_plan_names[plan_name.lower()]
                 
-                if not start_date:
-                    errors.append({'row': row_num, 'name': first_name, 'error': 'Start Date is required'})
-                    continue
-                
-                if not end_date:
-                    errors.append({'row': row_num, 'name': first_name, 'error': 'End Date is required'})
-                    continue
-                
-                # Validate workout duration
-                workout_duration_mapping = {
-                    '30 minutes': 30,
-                    '1 hour': 60,
-                    '1 hour 30 minutes': 90,
-                    '2 hours': 120,
-                    '2 hours 30 minutes': 150
-                }
-                
-                if not workout_duration:
-                    errors.append({'row': row_num, 'name': first_name, 'error': 'Workout Duration is required'})
-                    continue
-                
-                workout_duration_lower = workout_duration.lower().strip()
-                if workout_duration_lower not in workout_duration_mapping:
-                    errors.append({
-                        'row': row_num, 
-                        'name': first_name, 
-                        'error': f'Invalid Workout Duration. Must be one of: {", ".join(workout_duration_mapping.keys())}'
-                    })
-                    continue
-                
-                workout_duration_minutes = workout_duration_mapping[workout_duration_lower]
-                
-                # Validate date formats
-                try:
-                    parsed_start_date = datetime.strptime(start_date, '%d-%m-%Y').date()
-                except ValueError:
-                    try:
-                        parsed_start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
-                    except ValueError:
-                        errors.append({'row': row_num, 'name': first_name, 'error': 'Invalid Start Date format. Use DD-MM-YYYY or YYYY-MM-DD'})
-                        continue
-                
-                try:
-                    parsed_end_date = datetime.strptime(end_date, '%d-%m-%Y').date()
-                except ValueError:
-                    try:
-                        parsed_end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
-                    except ValueError:
-                        errors.append({'row': row_num, 'name': first_name, 'error': 'Invalid End Date format. Use DD-MM-YYYY or YYYY-MM-DD'})
-                        continue
-                
-                if dob:
-                    try:
-                        parsed_dob = datetime.strptime(dob, '%d-%m-%Y').date()
-                    except ValueError:
-                        try:
-                            parsed_dob = datetime.strptime(dob, '%Y-%m-%d').date()
-                        except ValueError:
-                            errors.append({'row': row_num, 'name': first_name, 'error': 'Invalid Date of Birth format. Use DD-MM-YYYY or YYYY-MM-DD'})
-                            continue
-                else:
-                    parsed_dob = None
-                
-                # Add to valid members
+                # Duration
+                duration_mins = parse_workout_duration(duration_val)
+
                 valid_members.append({
                     'first_name': first_name,
                     'last_name': last_name,
-                    'email': email,
-                    'phone': phone,
                     'gender': gender,
                     'date_of_birth': parsed_dob,
-                    'address': address,
+                    'phone': phone,
+                    'email': email,
                     'password': password,
-                    'emergency_contact_name': emergency_contact_name,
-                    'emergency_contact_phone': emergency_contact_phone,
-                    'membership_plan_name': membership_plan_name,
+                    'address': address,
+                    'emergency_contact_name': emergency_name,
+                    'emergency_contact_phone': emergency_phone,
+                    'membership_plan_name': actual_plan_name,
                     'status': status,
-                    'membership_start_date': parsed_start_date,
-                    'membership_end_date': parsed_end_date,
-                    'workout_duration_minutes': workout_duration_minutes,
+                    'membership_start_date': parsed_start,
+                    'membership_end_date': parsed_end,
+                    'workout_duration_minutes': duration_mins,
                     'medical_notes': medical_notes
                 })
-                
+
             except Exception as e:
-                print(f"DEBUG: Exception processing row {row_num}: {str(e)}")
-                import traceback
-                traceback.print_exc()
-                errors.append({'row': row_num, 'name': str(row[0]) if row else 'Unknown', 'error': f'Processing error: {str(e)}'})
-                continue
-        
-        print(f"DEBUG: Validation complete. Errors: {len(errors)}, Valid members: {len(valid_members)}")
-        
-        # If there are errors, return them without importing
-        if errors:
-            print(f"DEBUG: Returning validation errors: {errors}")
-            return jsonify({
-                'error': 'Validation failed',
-                'total_records': len(data_rows),
-                'success_count': 0,
-                'failed_count': len(errors),
-                'errors': errors
-            }), 400
-        
-        # Import valid members using the same logic as create_member
-        imported_count = 0
+                errors.append({'row': row_num, 'error': f'Row processing error: {str(e)}'})
+
+        # Process valid members
+        success_count = 0
         import_errors = []
-        
-        print(f"DEBUG: Starting import of {len(valid_members)} valid members")
-        
-        for idx, member_data in enumerate(valid_members):
+
+        for member_data in valid_members:
             try:
-                print(f"DEBUG: Importing member {idx + 1}/{len(valid_members)}: {member_data['first_name']} {member_data['last_name']}")
-                
-                # Generate unique member_id
                 import uuid
                 member_id = f"MEM{str(uuid.uuid4())[:8].upper()}"
-                
-                # Ensure member_id is unique within gym
                 while Member.query.filter_by(gym_id=gym_id, member_id=member_id).first():
                     member_id = f"MEM{str(uuid.uuid4())[:8].upper()}"
                 
-                print(f"DEBUG: Generated member_id: {member_id}")
-                
-                # Hash password
                 password_hash = bcrypt.generate_password_hash(member_data['password']).decode('utf-8')
-                print(f"DEBUG: Password hashed successfully")
                 
-                # Create member using the same logic as create_member
-                member = Member(
+                new_member = Member(
                     gym_id=gym_id,
                     member_id=member_id,
                     first_name=member_data['first_name'],
@@ -891,63 +815,110 @@ def bulk_upload_members():
                     status=member_data['status'],
                     workout_duration_minutes=member_data['workout_duration_minutes']
                 )
-                
-                db.session.add(member)
-                imported_count += 1
-                print(f"DEBUG: Member added to session. Total imported: {imported_count}")
-                
+                db.session.add(new_member)
+                success_count += 1
             except Exception as e:
-                print(f"DEBUG: Exception importing member {member_data['first_name']} {member_data['last_name']}: {str(e)}")
-                import traceback
-                traceback.print_exc()
-                import_errors.append({
-                    'name': f"{member_data['first_name']} {member_data['last_name']}",
-                    'error': str(e)
-                })
-                db.session.rollback()
-                continue
+                import_errors.append({'name': member_data['first_name'], 'error': str(e)})
+
+        if success_count > 0:
+            db.session.commit()
+            ActivityLogger.log_create('member', gym_id=gym_id, details={'bulk_import': True, 'count': success_count})
         
-        # Commit all successful imports
-        if imported_count > 0:
-            try:
-                print(f"DEBUG: Committing {imported_count} members to database")
-                db.session.commit()
-                ActivityLogger.log_create('member', gym_id=gym_id, details={'bulk_import': True, 'count': imported_count})
-                print(f"DEBUG: Commit successful")
-            except Exception as e:
-                print(f"DEBUG: Exception during commit: {str(e)}")
-                import traceback
-                traceback.print_exc()
-                db.session.rollback()
-                return jsonify({
-                    'error': f'Failed to save members: {str(e)}',
-                    'total_records': len(data_rows),
-                    'success_count': 0,
-                    'failed_count': len(data_rows)
-                }), 500
-        
-        # Generate error report if there were import errors
-        error_report_url = None
-        if import_errors:
-            output = io.StringIO()
-            writer = csv.writer(output)
-            writer.writerow(['Member Name', 'Error'])
-            for error in import_errors:
-                writer.writerow([error['name'], error['error']])
-            
-            # Save error report to a temporary file or return as base64
-            # For simplicity, we'll return the errors in the response
-            error_report_url = '/api/members/bulk-upload/error-report'
-        
+        # Merge validation errors and import errors
+        all_errors = errors + [{'row': 'N/A', 'error': f"Import failed for {e['name']}: {e['error']}"} for e in import_errors]
+
         return jsonify({
-            'message': 'Bulk import completed',
+            'message': 'Bulk import process completed',
             'total_records': len(data_rows),
-            'success_count': imported_count,
-            'failed_count': len(import_errors),
-            'errors': import_errors if import_errors else None,
-            'error_report_url': error_report_url if import_errors else None
+            'success_count': success_count,
+            'failed_count': len(all_errors),
+            'errors': all_errors if all_errors else None
         }), 200
         
     except Exception as e:
         db.session.rollback()
-        return jsonify({'error': f'Failed to process file: {str(e)}'}), 500
+
+
+@members_bp.route('/gym-status', methods=['GET'])
+@jwt_required()
+def get_gym_status():
+    """Get the operational status of the member's gym"""
+    try:
+        from flask_jwt_extended import get_jwt_identity
+        
+        # Get member from JWT
+        member_id = get_jwt_identity()
+        print(f"DEBUG: Gym status request - Member ID: {member_id}")
+        member = Member.query.get(int(member_id))
+        
+        if not member:
+            print(f"DEBUG: Member not found with ID: {member_id}")
+            return jsonify({'error': 'Member not found'}), 404
+        
+        print(f"DEBUG: Found member: {member.id}, gym_id: {member.gym_id}")
+        
+        # Get gym
+        gym = Gym.query.get(member.gym_id)
+        if not gym:
+            print(f"DEBUG: Gym not found with ID: {member.gym_id}")
+            return jsonify({'error': 'Gym not found'}), 404
+        
+        print(f"DEBUG: Gym operational_status: {gym.operational_status}, Member show_gym_status: {member.show_gym_status}")
+        
+        return jsonify({
+            'gym_name': gym.name,
+            'operational_status': gym.operational_status,
+            'show_gym_status': member.show_gym_status
+        }), 200
+        
+    except Exception as e:
+        print(f"DEBUG: Exception in get_gym_status: {str(e)}")
+        import traceback
+        print(f"DEBUG: Traceback: {traceback.format_exc()}")
+        return jsonify({'error': 'Failed to fetch gym status', 'details': str(e)}), 500
+
+
+@members_bp.route('/gym-status/preference', methods=['PUT'])
+@jwt_required()
+def update_gym_status_preference():
+    """Update member's preference to show/hide gym status"""
+    try:
+        from flask_jwt_extended import get_jwt_identity
+        
+        data = request.get_json() or {}
+        show_gym_status = data.get('show_gym_status')
+        
+        print(f"DEBUG: Received request to update preference. Data: {data}")
+        print(f"DEBUG: show_gym_status value: {show_gym_status}, type: {type(show_gym_status)}")
+        
+        if show_gym_status is None:
+            return jsonify({'error': 'show_gym_status is required'}), 400
+        
+        # Get member from JWT
+        member_id = get_jwt_identity()
+        print(f"DEBUG: Member ID from JWT: {member_id}")
+        member = Member.query.get(int(member_id))
+        
+        if not member:
+            print(f"DEBUG: Member not found with ID: {member_id}")
+            return jsonify({'error': 'Member not found'}), 404
+        
+        print(f"DEBUG: Found member: {member.id}, current show_gym_status: {member.show_gym_status}")
+        
+        # Update preference
+        member.show_gym_status = bool(show_gym_status)
+        db.session.commit()
+        
+        print(f"DEBUG: Updated member show_gym_status to: {member.show_gym_status}")
+        
+        return jsonify({
+            'message': 'Preference updated successfully',
+            'show_gym_status': member.show_gym_status
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"DEBUG: Exception in update_gym_status_preference: {str(e)}")
+        import traceback
+        print(f"DEBUG: Traceback: {traceback.format_exc()}")
+        return jsonify({'error': 'Failed to update preference', 'details': str(e)}), 500

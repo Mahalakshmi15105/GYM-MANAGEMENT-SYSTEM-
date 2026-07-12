@@ -5,7 +5,6 @@ import api from '../services/api';
 import {
   QrCodeIcon,
   ArrowLeftIcon,
-  ArrowPathIcon,
   DocumentArrowDownIcon,
   PrinterIcon,
   CheckCircleIcon,
@@ -20,7 +19,6 @@ export default function GymQRPage() {
   const [qrImageUrl, setQrImageUrl] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [regenerating, setRegenerating] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
 
   useEffect(() => {
@@ -45,41 +43,6 @@ export default function GymQRPage() {
       setError(err.response?.data?.error || 'Failed to load QR data');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleRegenerateQR = async () => {
-    if (!window.confirm('Are you sure you want to regenerate the QR code? This will invalidate the old QR code and you will need to print the new one.')) {
-      return;
-    }
-
-    setRegenerating(true);
-    setError('');
-    setSuccessMessage('');
-
-    try {
-      const response = await api.post('/api/gym/qr/regenerate');
-      setQrData(response.data);
-      
-      // Re-fetch the new QR image
-      if (response.data.has_qr) {
-        const imageResponse = await api.get('/api/gym/qr/image', {
-          responseType: 'blob'
-        });
-        if (qrImageUrl) {
-          URL.revokeObjectURL(qrImageUrl);
-        }
-        const imageUrl = URL.createObjectURL(imageResponse.data);
-        setQrImageUrl(imageUrl);
-      }
-      
-      setSuccessMessage('QR code regenerated successfully!');
-      setTimeout(() => setSuccessMessage(''), 3000);
-    } catch (err) {
-      console.error('Failed to regenerate QR:', err);
-      setError(err.response?.data?.error || 'Failed to regenerate QR code');
-    } finally {
-      setRegenerating(false);
     }
   };
 
@@ -211,28 +174,13 @@ export default function GymQRPage() {
                       <PrinterIcon className="w-5 h-5" />
                       Print QR Code
                     </button>
-                    <button
-                      onClick={handleRegenerateQR}
-                      disabled={regenerating}
-                      className="flex items-center justify-center gap-2 bg-orange-600 hover:bg-orange-700 text-white font-medium py-3 px-6 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      <ArrowPathIcon className={`w-5 h-5 ${regenerating ? 'animate-spin' : ''}`} />
-                      {regenerating ? 'Regenerating...' : 'Regenerate QR Code'}
-                    </button>
                   </div>
                 </>
               ) : (
                 <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-6">
                   <p className="text-yellow-800 text-sm">
-                    No QR code generated yet. Click the button below to generate one.
+                    No QR code generated yet. Please contact support to generate your gym's attendance QR code.
                   </p>
-                  <button
-                    onClick={handleRegenerateQR}
-                    disabled={regenerating}
-                    className="mt-4 bg-orange-600 hover:bg-orange-700 text-white font-medium py-2 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {regenerating ? 'Generating...' : 'Generate QR Code'}
-                  </button>
                 </div>
               )}
             </div>
@@ -246,8 +194,6 @@ export default function GymQRPage() {
               <li>Members will scan this QR code using their member app to check in</li>
               <li>Each member can only check in once per day</li>
               <li>The system automatically records the check-in time and date</li>
-              <li>If you need to change the QR code, click "Regenerate QR Code"</li>
-              <li>After regenerating, print and display the new QR code immediately</li>
             </ol>
           </div>
 
@@ -258,7 +204,6 @@ export default function GymQRPage() {
               <li>• Each gym has a unique QR code</li>
               <li>• Members can only check in at their own gym</li>
               <li>• The QR code is validated against the gym's database</li>
-              <li>• Regenerating the QR code invalidates the old one</li>
               <li>• Keep your QR code secure and display it in a visible location</li>
             </ul>
           </div>
