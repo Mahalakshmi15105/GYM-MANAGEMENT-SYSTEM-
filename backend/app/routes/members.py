@@ -1,10 +1,14 @@
-﻿from flask import Blueprint, request, jsonify
+﻿from flask import Blueprint, request, jsonify, send_file
 from flask_jwt_extended import jwt_required, get_jwt
 from sqlalchemy import or_
 from app.extensions import db, bcrypt
-from app.models import Member
+from app.models import Member, MembershipPlan
 from app.activity_logging import ActivityLogger
 from datetime import datetime
+import openpyxl
+from openpyxl.styles import Font
+import io
+import csv
 
 members_bp = Blueprint('members', __name__)
 
@@ -123,7 +127,8 @@ def create_member():
             membership_plan_name=data.get('membership_plan_name', ''),
             membership_start_date=start_date,
             membership_end_date=end_date,
-            status=data.get('status', 'Active')
+            status=data.get('status', 'Active'),
+            workout_duration_minutes=int(data.get('workout_duration_minutes', 120))
         )
         
         db.session.add(new_member)
@@ -223,6 +228,8 @@ def update_member(member_id):
             member.membership_plan_name = data['membership_plan_name']
         if 'status' in data:
             member.status = data['status']
+        if 'workout_duration_minutes' in data:
+            member.workout_duration_minutes = int(data['workout_duration_minutes'])
         
         # Handle password update
         if data.get('password'):
@@ -508,6 +515,439 @@ def get_current_member():
         },
         'membership': {
             'remaining_days': remaining_days,
-            'is_expiring_soon': remaining_days is not None and remaining_days <= 7
         }
     }), 200
+
+@members_bp.route('/bulk-upload/template', methods=['GET'])
+@jwt_required()
+def download_bulk_upload_template():
+    """Download Excel template for bulk member upload"""
+    gym_id = get_current_gym_id()
+    if not gym_id:
+        return jsonify({'error': 'Gym ID not found in token'}), 400
+    
+    try:
+        # Create a new workbook
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "Member Import Template"
+        
+        # Define headers matching the Member model fields
+        headers = [
+            'First Name', 'Last Name', 'Gender', 'Date of Birth', 
+            'Phone Number', 'Email', 'Address', 'Password',
+            'Emergency Contact Name', 'Emergency Contact Phone',
+            'Membership Plan Name', 'Status', 'Start Date', 'End Date', 'Workout Duration', 'Medical Notes'
+        ]
+        
+        # Write headers with bold font
+        for col_num, header in enumerate(headers, 1):
+            cell = ws.cell(row=1, column=col_num)
+            cell.value = header
+            cell.font = Font(bold=True)
+        
+        # Add example data
+        example_data = [
+            ['John', 'Doe', 'Male', '01-01-2000', '9876543210', 'john@gmail.com', '123 Main St', 'john123', '', '', 'Gold Plan', 'Active', '10-07-2026', '10-07-2027', '2 Hours', ''],
+            ['Alex', 'Kumar', 'Male', '02-02-2000', '9876543211', 'alex@gmail.com', '456 Oak Ave', 'alex123', 'Jane Doe', '9876543212', 'Silver Plan', 'Active', '10-07-2026', '10-07-2027', '1 Hour 30 Minutes', 'No allergies']
+        ]
+        
+        for row_num, row_data in enumerate(example_data, 2):
+            for col_num, value in enumerate(row_data, 1):
+                ws.cell(row=row_num, column=col_num, value=value)
+        
+        # Save to bytes
+        output = io.BytesIO()
+        wb.save(output)
+        output.seek(0)
+        
+        return send_file(
+            output,
+            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            as_attachment=True,
+            download_name='member_import_template.xlsx'
+        )
+    except Exception as e:
+        return jsonify({'error': f'Failed to generate template: {str(e)}'}), 500
+
+@members_bp.route('/bulk-upload', methods=['POST'])
+@jwt_required()
+def bulk_upload_members():
+    """Bulk upload members from Excel file"""
+    gym_id = get_current_gym_id()
+    if not gym_id:
+        return jsonify({'error': 'Gym ID not found in token'}), 400
+    
+    # Check if file is present
+    if 'file' not in request.files:
+        return jsonify({'error': 'No file provided'}), 400
+    
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({'error': 'No file selected'}), 400
+    
+    # Validate file extension
+    if not file.filename.lower().endswith(('.xlsx', '.xls')):
+        return jsonify({'error': 'Invalid file type. Please upload .xlsx or .xls file'}), 400
+    
+    try:
+        # Read Excel file
+        wb = openpyxl.load_workbook(file)
+        ws = wb.active
+        
+        # Get all rows
+        rows = list(ws.iter_rows(values_only=True))
+        
+        # Validate header row
+        expected_headers = [
+            'First Name', 'Last Name', 'Gender', 'Date of Birth', 
+            'Phone Number', 'Email', 'Address', 'Password',
+            'Emergency Contact Name', 'Emergency Contact Phone',
+            'Membership Plan Name', 'Status', 'Start Date', 'End Date', 'Workout Duration', 'Medical Notes'
+        ]
+        
+        if not rows or len(rows) < 1:
+            return jsonify({'error': 'File is empty'}), 400
+        
+        actual_headers = [str(h).strip() for h in rows[0]]
+        if actual_headers != expected_headers:
+            return jsonify({
+                'error': 'Invalid template format. Please download the correct template.',
+                'expected': expected_headers,
+                'actual': actual_headers
+            }), 400
+        
+        # Process data rows (skip header)
+        data_rows = rows[1:]
+        
+        # Validate max rows
+        if len(data_rows) > 500:
+            return jsonify({'error': 'Maximum 500 members allowed per upload'}), 400
+        
+        # Get existing emails and phones for validation
+        existing_members = Member.query.filter_by(gym_id=gym_id).all()
+        existing_emails = {m.email.lower() for m in existing_members if m.email}
+        existing_phones = {m.phone for m in existing_members if m.phone}
+        
+        # Get existing membership plans for validation
+        membership_plans = MembershipPlan.query.filter_by(gym_id=gym_id).all()
+        existing_plan_names = {plan.plan_name.lower(): plan.plan_name for plan in membership_plans}
+        
+        print(f"DEBUG: Gym ID: {gym_id}")
+        print(f"DEBUG: Existing membership plans: {existing_plan_names}")
+        print(f"DEBUG: Total rows in file: {len(data_rows)}")
+        
+        # Track validation errors
+        errors = []
+        valid_members = []
+        
+        # Track emails and phones in current upload
+        upload_emails = {}
+        upload_phones = {}
+        
+        for row_num, row in enumerate(data_rows, start=2):  # Start from row 2 (after header)
+            if not row or all(cell is None for cell in row):
+                print(f"DEBUG: Row {row_num} is empty, skipping")
+                continue  # Skip empty rows
+            
+            try:
+                first_name = str(row[0]).strip() if row[0] else ''
+                last_name = str(row[1]).strip() if row[1] else ''
+                gender = str(row[2]).strip() if row[2] else ''
+                dob = str(row[3]).strip() if row[3] else ''
+                phone = str(row[4]).strip() if row[4] else ''
+                email = str(row[5]).strip().lower() if row[5] else ''
+                address = str(row[6]).strip() if row[6] else ''
+                password = str(row[7]).strip() if row[7] else ''
+                emergency_contact_name = str(row[8]).strip() if row[8] else ''
+                emergency_contact_phone = str(row[9]).strip() if row[9] else ''
+                membership_plan_name = str(row[10]).strip() if row[10] else ''
+                status = str(row[11]).strip() if row[11] else ''
+                start_date = str(row[12]).strip() if row[12] else ''
+                end_date = str(row[13]).strip() if row[13] else ''
+                workout_duration = str(row[14]).strip() if row[14] else ''
+                medical_notes = str(row[15]).strip() if row[15] else ''
+                
+                print(f"DEBUG: Processing row {row_num}: {first_name} {last_name}, Plan: {membership_plan_name}")
+                print(f"DEBUG: Row {row_num} data - Phone: {phone}, Email: {email}, Password: {'*' * len(password) if password else 'None'}")
+                
+                # Validation
+                if not first_name:
+                    errors.append({'row': row_num, 'name': first_name, 'error': 'First Name is required'})
+                    print(f"DEBUG: Row {row_num} failed - First Name required")
+                    continue
+                
+                if not phone:
+                    errors.append({'row': row_num, 'name': first_name, 'error': 'Phone Number is required'})
+                    continue
+                
+                # Phone format validation (min 10 digits)
+                phone_digits = ''.join(filter(str.isdigit, phone))
+                if len(phone_digits) < 10:
+                    errors.append({'row': row_num, 'name': first_name, 'error': 'Phone number must have at least 10 digits'})
+                    continue
+                
+                # Check duplicate phone within upload
+                if phone in upload_phones:
+                    errors.append({'row': row_num, 'name': first_name, 'error': 'Duplicate phone within upload'})
+                    continue
+                upload_phones[phone] = row_num
+                
+                # Check existing phone in database
+                if phone in existing_phones:
+                    errors.append({'row': row_num, 'name': first_name, 'error': 'Phone already exists in database'})
+                    continue
+                
+                if not email:
+                    errors.append({'row': row_num, 'name': first_name, 'error': 'Email is required'})
+                    continue
+                
+                # Email format validation
+                if '@' not in email or '.' not in email:
+                    errors.append({'row': row_num, 'name': first_name, 'error': 'Invalid email format'})
+                    continue
+                
+                # Check duplicate email within upload
+                if email in upload_emails:
+                    errors.append({'row': row_num, 'name': first_name, 'error': 'Duplicate email within upload'})
+                    continue
+                upload_emails[email] = row_num
+                
+                # Check existing email in database
+                if email in existing_emails:
+                    errors.append({'row': row_num, 'name': first_name, 'error': 'Email already exists in database'})
+                    continue
+                
+                if not password:
+                    errors.append({'row': row_num, 'name': first_name, 'error': 'Password is required'})
+                    continue
+                
+                if not membership_plan_name:
+                    errors.append({'row': row_num, 'name': first_name, 'error': 'Membership Plan Name is required'})
+                    continue
+                
+                # Validate membership plan exists in database
+                if membership_plan_name.lower() not in existing_plan_names:
+                    errors.append({
+                        'row': row_num, 
+                        'name': first_name, 
+                        'error': f'Membership Plan "{membership_plan_name}" not found. Available plans: {", ".join(existing_plan_names.values())}'
+                    })
+                    continue
+                
+                if not status:
+                    errors.append({'row': row_num, 'name': first_name, 'error': 'Status is required'})
+                    continue
+                
+                if status not in ['Active', 'Inactive', 'Expired']:
+                    errors.append({'row': row_num, 'name': first_name, 'error': 'Invalid Status. Must be Active, Inactive, or Expired'})
+                    continue
+                
+                if not start_date:
+                    errors.append({'row': row_num, 'name': first_name, 'error': 'Start Date is required'})
+                    continue
+                
+                if not end_date:
+                    errors.append({'row': row_num, 'name': first_name, 'error': 'End Date is required'})
+                    continue
+                
+                # Validate workout duration
+                workout_duration_mapping = {
+                    '30 minutes': 30,
+                    '1 hour': 60,
+                    '1 hour 30 minutes': 90,
+                    '2 hours': 120,
+                    '2 hours 30 minutes': 150
+                }
+                
+                if not workout_duration:
+                    errors.append({'row': row_num, 'name': first_name, 'error': 'Workout Duration is required'})
+                    continue
+                
+                workout_duration_lower = workout_duration.lower().strip()
+                if workout_duration_lower not in workout_duration_mapping:
+                    errors.append({
+                        'row': row_num, 
+                        'name': first_name, 
+                        'error': f'Invalid Workout Duration. Must be one of: {", ".join(workout_duration_mapping.keys())}'
+                    })
+                    continue
+                
+                workout_duration_minutes = workout_duration_mapping[workout_duration_lower]
+                
+                # Validate date formats
+                try:
+                    parsed_start_date = datetime.strptime(start_date, '%d-%m-%Y').date()
+                except ValueError:
+                    try:
+                        parsed_start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
+                    except ValueError:
+                        errors.append({'row': row_num, 'name': first_name, 'error': 'Invalid Start Date format. Use DD-MM-YYYY or YYYY-MM-DD'})
+                        continue
+                
+                try:
+                    parsed_end_date = datetime.strptime(end_date, '%d-%m-%Y').date()
+                except ValueError:
+                    try:
+                        parsed_end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
+                    except ValueError:
+                        errors.append({'row': row_num, 'name': first_name, 'error': 'Invalid End Date format. Use DD-MM-YYYY or YYYY-MM-DD'})
+                        continue
+                
+                if dob:
+                    try:
+                        parsed_dob = datetime.strptime(dob, '%d-%m-%Y').date()
+                    except ValueError:
+                        try:
+                            parsed_dob = datetime.strptime(dob, '%Y-%m-%d').date()
+                        except ValueError:
+                            errors.append({'row': row_num, 'name': first_name, 'error': 'Invalid Date of Birth format. Use DD-MM-YYYY or YYYY-MM-DD'})
+                            continue
+                else:
+                    parsed_dob = None
+                
+                # Add to valid members
+                valid_members.append({
+                    'first_name': first_name,
+                    'last_name': last_name,
+                    'email': email,
+                    'phone': phone,
+                    'gender': gender,
+                    'date_of_birth': parsed_dob,
+                    'address': address,
+                    'password': password,
+                    'emergency_contact_name': emergency_contact_name,
+                    'emergency_contact_phone': emergency_contact_phone,
+                    'membership_plan_name': membership_plan_name,
+                    'status': status,
+                    'membership_start_date': parsed_start_date,
+                    'membership_end_date': parsed_end_date,
+                    'workout_duration_minutes': workout_duration_minutes,
+                    'medical_notes': medical_notes
+                })
+                
+            except Exception as e:
+                print(f"DEBUG: Exception processing row {row_num}: {str(e)}")
+                import traceback
+                traceback.print_exc()
+                errors.append({'row': row_num, 'name': str(row[0]) if row else 'Unknown', 'error': f'Processing error: {str(e)}'})
+                continue
+        
+        print(f"DEBUG: Validation complete. Errors: {len(errors)}, Valid members: {len(valid_members)}")
+        
+        # If there are errors, return them without importing
+        if errors:
+            print(f"DEBUG: Returning validation errors: {errors}")
+            return jsonify({
+                'error': 'Validation failed',
+                'total_records': len(data_rows),
+                'success_count': 0,
+                'failed_count': len(errors),
+                'errors': errors
+            }), 400
+        
+        # Import valid members using the same logic as create_member
+        imported_count = 0
+        import_errors = []
+        
+        print(f"DEBUG: Starting import of {len(valid_members)} valid members")
+        
+        for idx, member_data in enumerate(valid_members):
+            try:
+                print(f"DEBUG: Importing member {idx + 1}/{len(valid_members)}: {member_data['first_name']} {member_data['last_name']}")
+                
+                # Generate unique member_id
+                import uuid
+                member_id = f"MEM{str(uuid.uuid4())[:8].upper()}"
+                
+                # Ensure member_id is unique within gym
+                while Member.query.filter_by(gym_id=gym_id, member_id=member_id).first():
+                    member_id = f"MEM{str(uuid.uuid4())[:8].upper()}"
+                
+                print(f"DEBUG: Generated member_id: {member_id}")
+                
+                # Hash password
+                password_hash = bcrypt.generate_password_hash(member_data['password']).decode('utf-8')
+                print(f"DEBUG: Password hashed successfully")
+                
+                # Create member using the same logic as create_member
+                member = Member(
+                    gym_id=gym_id,
+                    member_id=member_id,
+                    first_name=member_data['first_name'],
+                    last_name=member_data['last_name'],
+                    gender=member_data['gender'],
+                    date_of_birth=member_data['date_of_birth'],
+                    phone=member_data['phone'],
+                    email=member_data['email'],
+                    password_hash=password_hash,
+                    address=member_data['address'],
+                    emergency_contact_name=member_data['emergency_contact_name'],
+                    emergency_contact_phone=member_data['emergency_contact_phone'],
+                    medical_notes=member_data['medical_notes'],
+                    membership_plan_name=member_data['membership_plan_name'],
+                    membership_start_date=member_data['membership_start_date'],
+                    membership_end_date=member_data['membership_end_date'],
+                    status=member_data['status'],
+                    workout_duration_minutes=member_data['workout_duration_minutes']
+                )
+                
+                db.session.add(member)
+                imported_count += 1
+                print(f"DEBUG: Member added to session. Total imported: {imported_count}")
+                
+            except Exception as e:
+                print(f"DEBUG: Exception importing member {member_data['first_name']} {member_data['last_name']}: {str(e)}")
+                import traceback
+                traceback.print_exc()
+                import_errors.append({
+                    'name': f"{member_data['first_name']} {member_data['last_name']}",
+                    'error': str(e)
+                })
+                db.session.rollback()
+                continue
+        
+        # Commit all successful imports
+        if imported_count > 0:
+            try:
+                print(f"DEBUG: Committing {imported_count} members to database")
+                db.session.commit()
+                ActivityLogger.log_create('member', gym_id=gym_id, details={'bulk_import': True, 'count': imported_count})
+                print(f"DEBUG: Commit successful")
+            except Exception as e:
+                print(f"DEBUG: Exception during commit: {str(e)}")
+                import traceback
+                traceback.print_exc()
+                db.session.rollback()
+                return jsonify({
+                    'error': f'Failed to save members: {str(e)}',
+                    'total_records': len(data_rows),
+                    'success_count': 0,
+                    'failed_count': len(data_rows)
+                }), 500
+        
+        # Generate error report if there were import errors
+        error_report_url = None
+        if import_errors:
+            output = io.StringIO()
+            writer = csv.writer(output)
+            writer.writerow(['Member Name', 'Error'])
+            for error in import_errors:
+                writer.writerow([error['name'], error['error']])
+            
+            # Save error report to a temporary file or return as base64
+            # For simplicity, we'll return the errors in the response
+            error_report_url = '/api/members/bulk-upload/error-report'
+        
+        return jsonify({
+            'message': 'Bulk import completed',
+            'total_records': len(data_rows),
+            'success_count': imported_count,
+            'failed_count': len(import_errors),
+            'errors': import_errors if import_errors else None,
+            'error_report_url': error_report_url if import_errors else None
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': f'Failed to process file: {str(e)}'}), 500

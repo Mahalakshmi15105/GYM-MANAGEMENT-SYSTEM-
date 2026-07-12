@@ -24,7 +24,8 @@ export default function EditMemberPage() {
     membership_plan_name: '',
     membership_start_date: '',
     membership_end_date: '',
-    status: 'Active'
+    status: 'Active',
+    workout_duration_minutes: '120'  // Default 2 hours
   });
 
   useEffect(() => {
@@ -41,7 +42,8 @@ export default function EditMemberPage() {
         ...member,
         date_of_birth: member.date_of_birth ? member.date_of_birth.split('T')[0] : '',
         membership_start_date: member.membership_start_date ? member.membership_start_date.split('T')[0] : '',
-        membership_end_date: member.membership_end_date ? member.membership_end_date.split('T')[0] : ''
+        membership_end_date: member.membership_end_date ? member.membership_end_date.split('T')[0] : '',
+        workout_duration_minutes: member.workout_duration_minutes || '120'
       });
     } catch (err) {
       console.error(err);
@@ -386,6 +388,27 @@ export default function EditMemberPage() {
                   onChange={handleInputChange}
                   className="w-full bg-gray-50 border border-gray-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 rounded-xl px-4 py-3 text-sm text-gray-900 focus:outline-none transition-all duration-200"
                 />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-gray-600 mb-2">
+                  Workout Duration Per Visit *
+                </label>
+                <select
+                  name="workout_duration_minutes"
+                  required
+                  value={formData.workout_duration_minutes}
+                  onChange={handleInputChange}
+                  className="w-full bg-gray-50 border border-gray-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 rounded-xl px-4 py-3 text-sm text-gray-900 focus:outline-none transition-all duration-200"
+                >
+                  <option value="30">30 Minutes</option>
+                  <option value="60">1 Hour</option>
+                  <option value="90">1 Hour 30 Minutes</option>
+                  <option value="120">2 Hours</option>
+                  <option value="150">2 Hours 30 Minutes</option>
+                </select>
+                <p className="text-xs text-gray-500 mt-1">
+                  Maximum allowed time per gym visit
+                </p>
               </div>
             </div>
             <div className="mt-4">

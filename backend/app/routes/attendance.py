@@ -116,11 +116,16 @@ def create_attendance():
             except ValueError:
                 pass
         
+        # Calculate expected finish time based on member's workout duration
+        workout_duration_minutes = member.workout_duration_minutes or 120  # Default 2 hours
+        expected_finish_time = check_in_time + timedelta(minutes=workout_duration_minutes)
+        
         # Create new attendance record
         new_attendance = Attendance(
             gym_id=gym_id,
             member_id=data['member_id'],
             check_in_time=check_in_time,
+            expected_finish_time=expected_finish_time,
             attendance_date=check_in_time.date(),
             status='Checked In',
             notes=data.get('notes', '')

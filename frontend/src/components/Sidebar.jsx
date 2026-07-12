@@ -17,6 +17,7 @@ import {
   ArrowRightOnRectangleIcon,
   XMarkIcon,
   ShieldCheckIcon,
+  ChatBubbleLeftIcon,
 } from "@heroicons/react/24/outline";
 
 export default function Sidebar({ isOpen, setIsOpen }) {
@@ -56,6 +57,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
     { name: t('nav.attendance'), path: "/attendance", icon: CalendarIcon },
     { name: t('nav.reports'), path: "/reports", icon: ChartBarIcon },
     { name: t('nav.trainersPlans'), path: "/plans", icon: HeartIcon },
+    { name: "Messages", path: "/broadcasts", icon: ChatBubbleLeftIcon },
     { name: t('nav.gymProfile'), path: "/gym-profile", icon: BuildingOffice2Icon },
     { name: t('nav.settings'), path: "/settings", icon: Cog6ToothIcon },
   ];

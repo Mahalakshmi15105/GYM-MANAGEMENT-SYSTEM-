@@ -117,6 +117,7 @@ class Member(db.Model):
     membership_start_date = db.Column(db.Date, nullable=False)
     membership_end_date = db.Column(db.Date, nullable=False)
     status = db.Column(db.String(20), nullable=False)
+    workout_duration_minutes = db.Column(db.Integer, nullable=True, default=120)  # Default 2 hours (120 minutes)
     photo = db.Column(db.String(255), nullable=True)
     created_at = db.Column(db.DateTime, nullable=True)
     updated_at = db.Column(db.DateTime, nullable=True)
@@ -141,6 +142,7 @@ class Member(db.Model):
             'membership_start_date': self.membership_start_date.isoformat() if self.membership_start_date else None,
             'membership_end_date': self.membership_end_date.isoformat() if self.membership_end_date else None,
             'status': self.status,
+            'workout_duration_minutes': self.workout_duration_minutes,
             'photo': self.photo,
             'has_account': bool(self.password_hash and self.password_hash.strip()),  # Indicates if member has login account
             'created_at': self.created_at.isoformat() if self.created_at else None,
@@ -196,6 +198,8 @@ class Attendance(db.Model):
     member_id = db.Column(db.Integer, db.ForeignKey('members.id'), nullable=False)
     check_in_time = db.Column(db.DateTime, nullable=False)
     check_out_time = db.Column(db.DateTime, nullable=True)
+    expected_finish_time = db.Column(db.DateTime, nullable=True)  # Expected finish time based on workout duration
+    timeout_notification_sent = db.Column(db.Boolean, default=False)  # Track if timeout notification was sent
     attendance_date = db.Column(db.Date, nullable=False)
     status = db.Column(db.String(20), nullable=False)
     notes = db.Column(db.Text, nullable=True)
@@ -209,6 +213,7 @@ class Attendance(db.Model):
             'member_id': self.member_id,
             'check_in_time': self.check_in_time.isoformat() if self.check_in_time else None,
             'check_out_time': self.check_out_time.isoformat() if self.check_out_time else None,
+            'expected_finish_time': self.expected_finish_time.isoformat() if self.expected_finish_time else None,
             'attendance_date': self.attendance_date.isoformat() if self.attendance_date else None,
             'status': self.status,
             'notes': self.notes,
@@ -274,4 +279,62 @@ class Notification(db.Model):
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'scheduled_for': self.scheduled_for.isoformat() if self.scheduled_for else None,
             'delivered_at': self.delivered_at.isoformat() if self.delivered_at else None
+        }
+
+
+class BroadcastMessage(db.Model):
+    __tablename__ = 'broadcast_messages'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    gym_id = db.Column(db.Integer, db.ForeignKey('gyms.id'), nullable=False, index=True)
+    subject = db.Column(db.String(255), nullable=False)
+    title = db.Column(db.String(255), nullable=False)
+    message = db.Column(db.Text, nullable=False)
+    attachment_url = db.Column(db.String(500), nullable=True)
+    banner_url = db.Column(db.String(500), nullable=True)
+    recipient_type = db.Column(db.String(50), nullable=False, default='all')  # 'all', 'active', 'expiring', 'selected'
+    created_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    
+    # Relationships
+    gym = db.relationship('Gym', backref='broadcast_messages')
+    creator = db.relationship('User', backref='broadcast_messages')
+    recipients = db.relationship('BroadcastRecipient', backref='broadcast', cascade='all, delete-orphan')
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'gym_id': self.gym_id,
+            'subject': self.subject,
+            'title': self.title,
+            'message': self.message,
+            'attachment_url': self.attachment_url,
+            'banner_url': self.banner_url,
+            'recipient_type': self.recipient_type,
+            'created_by': self.created_by,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'total_recipients': len(self.recipients),
+            'read_count': sum(1 for r in self.recipients if r.is_read)
+        }
+
+
+class BroadcastRecipient(db.Model):
+    __tablename__ = 'broadcast_recipients'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    broadcast_id = db.Column(db.Integer, db.ForeignKey('broadcast_messages.id'), nullable=False, index=True)
+    member_id = db.Column(db.Integer, db.ForeignKey('members.id'), nullable=False, index=True)
+    is_read = db.Column(db.Boolean, default=False, nullable=False)
+    read_at = db.Column(db.DateTime, nullable=True)
+    
+    # Relationships
+    member = db.relationship('Member', backref='broadcast_recipients')
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'broadcast_id': self.broadcast_id,
+            'member_id': self.member_id,
+            'is_read': self.is_read,
+            'read_at': self.read_at.isoformat() if self.read_at else None
         }

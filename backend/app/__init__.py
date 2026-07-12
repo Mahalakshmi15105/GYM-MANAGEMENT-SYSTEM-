@@ -65,6 +65,10 @@ def create_app(config_class=Config):
     from app.routes.notifications import notifications_bp
     app.register_blueprint(notifications_bp, url_prefix='/api/notifications')
     
+    # Register broadcasts blueprint
+    from app.routes.broadcasts import broadcasts_bp
+    app.register_blueprint(broadcasts_bp, url_prefix='/api/broadcasts')
+    
     # Create DB tables automatically on boot if DB is connected
     with app.app_context():
         try:

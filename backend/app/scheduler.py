@@ -4,7 +4,7 @@ Background scheduler for generating expiry notifications
 
 from datetime import datetime, timedelta
 from app.extensions import db
-from app.models import Notification, Gym, Member, User
+from app.models import Notification, Gym, Member, User, Attendance
 from sqlalchemy import and_
 import logging
 
@@ -166,9 +166,78 @@ def check_member_membership_expiry():
         logger.error(f'Error generating member membership expiry notifications: {str(e)}')
 
 
+def check_workout_timeouts():
+    """Check for members whose workout duration has ended and send notifications"""
+    try:
+        current_time = datetime.utcnow()
+        
+        # Find attendance records where expected finish time has passed
+        # and notification has not been sent yet
+        # Only for members who are still checked in (status = 'Checked In')
+        attendance_records = Attendance.query.filter(
+            Attendance.expected_finish_time <= current_time,
+            Attendance.timeout_notification_sent == False,
+            Attendance.status == 'Checked In'
+        ).all()
+        
+        logger.info(f'Found {len(attendance_records)} attendance records with workout timeout')
+        
+        for attendance in attendance_records:
+            member = Member.query.get(attendance.member_id)
+            if not member:
+                continue
+            
+            # Find gym owner
+            gym_owner = User.query.filter(
+                User.gym_id == member.gym_id,
+                User.role == 'gym_owner'
+            ).first()
+            
+            # Send notification to member (if they have an account)
+            if member.password_hash:
+                member_notification = Notification(
+                    gym_id=member.gym_id,
+                    recipient_role='member',
+                    recipient_id=member.id,
+                    notification_type='workout_timeout',
+                    title='Your scheduled workout duration has ended',
+                    message='Your scheduled workout duration has ended. Thank you for visiting. Have a great day!',
+                    reference_id=attendance.id,
+                    is_read=False,
+                    created_at=datetime.utcnow()
+                )
+                db.session.add(member_notification)
+            
+            # Send notification to gym owner
+            if gym_owner:
+                owner_notification = Notification(
+                    gym_id=member.gym_id,
+                    recipient_role='gym_owner',
+                    recipient_id=gym_owner.id,
+                    notification_type='workout_timeout',
+                    title=f'Member {member.first_name} {member.last_name} has completed the scheduled workout duration',
+                    message=f'Member {member.first_name} {member.last_name} has completed the scheduled workout duration.',
+                    reference_id=attendance.id,
+                    is_read=False,
+                    created_at=datetime.utcnow()
+                )
+                db.session.add(owner_notification)
+            
+            # Mark notification as sent
+            attendance.timeout_notification_sent = True
+        
+        db.session.commit()
+        logger.info('Workout timeout notifications generated successfully')
+        
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f'Error generating workout timeout notifications: {str(e)}')
+
+
 def generate_all_notifications():
     """Generate all expiry notifications (called by scheduler)"""
     logger.info('Starting notification generation job...')
     check_gym_subscription_expiry()
     check_member_membership_expiry()
+    check_workout_timeouts()
     logger.info('Notification generation job completed')

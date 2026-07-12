@@ -13,9 +13,9 @@ try:
     scheduler.add_job(
         func=generate_all_notifications,
         trigger='interval',
-        days=1,
+        minutes=1,
         id='notification_generator',
-        name='Generate expiry notifications daily',
+        name='Generate notifications every minute',
         replace_existing=True
     )
     

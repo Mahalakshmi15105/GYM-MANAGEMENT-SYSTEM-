@@ -40,6 +40,8 @@ import ReportsPage from "../pages/ReportsPage";
 import MemberDashboard from "../pages/MemberDashboard";
 import MemberChangePassword from "../pages/MemberChangePassword";
 import GymQRPage from "../pages/GymQRPage";
+import BroadcastMessagesPage from "../pages/BroadcastMessagesPage";
+import MemberMessagesPage from "../pages/MemberMessagesPage";
 
 // Prevents logged-in users from accessing landing/login/register pages.
 function PublicOnlyRoute({ children }) {
@@ -266,6 +268,16 @@ export default function AppRoutes() {
             </GymOwnerRoute>
           }
         />
+
+        {/* Broadcast Messages */}
+        <Route
+          path="broadcasts"
+          element={
+            <GymOwnerRoute>
+              <BroadcastMessagesPage />
+            </GymOwnerRoute>
+          }
+        />
         <Route
           path="attendance/:id"
           element={
@@ -335,6 +347,14 @@ export default function AppRoutes() {
         element={
           <MemberRoute>
             <MemberDashboard />
+          </MemberRoute>
+        }
+      />
+      <Route
+        path="/member/messages"
+        element={
+          <MemberRoute>
+            <MemberMessagesPage />
           </MemberRoute>
         }
       />

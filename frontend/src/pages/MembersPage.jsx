@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTranslation } from '../utils/i18n';
+import BulkUploadModal from '../components/BulkUploadModal';
 import api from '../services/api';
-import { PlusIcon, KeyIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, KeyIcon, ArrowUpTrayIcon } from '@heroicons/react/24/outline';
 
 export default function MembersPage() {
     const { user } = useAuth();
@@ -16,6 +17,7 @@ export default function MembersPage() {
     const [deleteModal, setDeleteModal] = useState({ isOpen: false, member: null });
     const [actionModal, setActionModal] = useState({ isOpen: false, member: null, action: null });
     const [actionLoading, setActionLoading] = useState(false);
+    const [bulkUploadModal, setBulkUploadModal] = useState({ isOpen: false });
 
     useEffect(() => {
         fetchMembers();
@@ -130,12 +132,20 @@ export default function MembersPage() {
                         Manage your gym members - Gym ID: {user?.gym_id}
                     </p>
                 </div>
-                <Link
-                    to="/members/add"
-                    className="bg-orange-600 hover:bg-orange-700 text-white font-bold px-6 py-3 rounded-xl transition-all duration-200 self-start md:self-auto text-center shadow-sm flex items-center gap-2"
-                >
-                    <PlusIcon className="w-4 h-4" /> {t('members.addMember')}
-                </Link>
+                <div className="flex items-center gap-3 self-start md:self-auto">
+                    <Link
+                        to="/members/add"
+                        className="bg-orange-600 hover:bg-orange-700 text-white font-bold px-6 py-3 rounded-xl transition-all duration-200 text-center shadow-sm flex items-center gap-2"
+                    >
+                        <PlusIcon className="w-4 h-4" /> {t('members.addMember')}
+                    </Link>
+                    <button
+                        onClick={() => setBulkUploadModal({ isOpen: true })}
+                        className="bg-gray-700 hover:bg-gray-800 text-white font-bold px-6 py-3 rounded-xl transition-all duration-200 text-center shadow-sm flex items-center gap-2"
+                    >
+                        <ArrowUpTrayIcon className="w-4 h-4" /> Bulk Upload
+                    </button>
+                </div>
             </div>
 
             <div className="bg-white border border-gray-200 p-6 rounded-2xl shadow-sm">
@@ -376,6 +386,17 @@ export default function MembersPage() {
                         </div>
                     </div>
                 </div>
+            )}
+
+            {bulkUploadModal.isOpen && (
+                <BulkUploadModal
+                    isOpen={bulkUploadModal.isOpen}
+                    onClose={() => setBulkUploadModal({ isOpen: false })}
+                    onImportComplete={() => {
+                        setBulkUploadModal({ isOpen: false });
+                        fetchMembers();
+                    }}
+                />
             )}
         </div>
     );
