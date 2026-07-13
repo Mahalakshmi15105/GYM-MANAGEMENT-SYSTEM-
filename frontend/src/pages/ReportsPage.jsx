@@ -225,7 +225,26 @@ export default function ReportsPage() {
     }
 
     if (format === "pdf") {
-      const doc = new jsPDF();
+      // Calculate estimated column widths to determine orientation
+      const columnWidths = headerKeys.map(key => {
+        const headerWidth = String(key).length * 3; // Estimate header width
+        const maxDataWidth = Math.max(...formattedRows.map(row => String(row[key] || "").length)) * 2.5;
+        return Math.max(headerWidth, maxDataWidth);
+      });
+      
+      const totalEstimatedWidth = columnWidths.reduce((sum, width) => sum + width, 0);
+      const portraitWidthThreshold = 180; // Threshold in mm for portrait
+      
+      // Determine orientation based on column count and total width
+      const useLandscape = headerKeys.length > 6 || totalEstimatedWidth > portraitWidthThreshold;
+      
+      // Create PDF with appropriate orientation
+      const doc = new jsPDF({
+        orientation: useLandscape ? 'landscape' : 'portrait',
+        unit: 'mm',
+        format: 'a4'
+      });
+      
       const pageWidth = doc.internal.pageSize.getWidth();
       const pageHeight = doc.internal.pageSize.getHeight();
       
@@ -254,6 +273,12 @@ export default function ReportsPage() {
       // Prepare table data
       const tableData = formattedRows.map(row => headerKeys.map(key => row[key] || '-'));
       
+      // Calculate column widths proportionally
+      const availableWidth = pageWidth - 28; // Total width minus margins (14 left + 14 right)
+      const proportionalColumnWidths = columnWidths.map(width => 
+        (width / totalEstimatedWidth) * availableWidth
+      );
+      
       // Determine column alignment based on content
       const columnStyles = {};
       headerKeys.forEach((key, i) => {
@@ -270,6 +295,7 @@ export default function ReportsPage() {
           halign: isNumeric ? 'right' : 'left',
           cellPadding: 3,
           fontSize: 8,
+          cellWidth: proportionalColumnWidths[i],
         };
       });
       
@@ -283,6 +309,8 @@ export default function ReportsPage() {
           fontSize: 8,
           cellPadding: 3,
           overflow: 'linebreak',
+          lineWidth: 0.1,
+          lineColor: [200, 200, 200],
         },
         headStyles: {
           fillColor: [243, 156, 18], // Orange background
@@ -291,12 +319,15 @@ export default function ReportsPage() {
           halign: 'center',
           cellPadding: 4,
           fontSize: 9,
+          lineWidth: 0.2,
+          lineColor: [200, 200, 200],
         },
         alternateRowStyles: {
           fillColor: [249, 250, 251], // Light gray for alternating rows
         },
         columnStyles: columnStyles,
         margin: { top: 50, left: 14, right: 14, bottom: 20 },
+        tableWidth: 'auto',
         didDrawPage: function(data) {
           // Add page border on each page
           doc.setDrawColor(200);

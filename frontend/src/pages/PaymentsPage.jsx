@@ -77,13 +77,16 @@ export default function PaymentsPage() {
     }
   };
 
-  const isDueTomorrow = (endDate) => {
+  const isDueOrOverdue = (endDate) => {
     if (!endDate) return false;
     const dueDate = new Date(endDate);
     const today = new Date();
+    today.setHours(0, 0, 0, 0);
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
-    return dueDate.toDateString() === tomorrow.toDateString();
+    const dueDateMidnight = new Date(dueDate);
+    dueDateMidnight.setHours(0, 0, 0, 0);
+    return dueDateMidnight <= tomorrow;
   };
 
   const openPaymentModal = (member) => {
@@ -253,11 +256,11 @@ export default function PaymentsPage() {
                 {members.map((member) => (
                   <tr
                     key={member.id}
-                    className="border-b border-gray-100 hover:bg-gray-50"
+                    className={`border-b border-gray-100 hover:bg-gray-50 ${isDueOrOverdue(member.membership_end_date) ? 'bg-red-50 border-l-4 border-red-500' : ''}`}
                   >
                     <td className="px-6 py-4">
                       <div>
-                        <p className={`text-sm font-medium ${isDueTomorrow(member.membership_end_date) ? 'text-red-600' : 'text-gray-900'}`}>
+                        <p className="text-sm font-medium text-gray-900">
                           {member.first_name} {member.last_name}
                         </p>
                         <p className="text-xs text-gray-500 font-mono">

@@ -14,6 +14,121 @@ def get_current_gym_id():
     claims = get_jwt()
     return claims.get('gym_id')
 
+@attendance_bp.route('/live-presence', methods=['GET'])
+@jwt_required()
+def get_live_presence():
+    """Get live presence data for the current gym (currently inside and left today)"""
+    gym_id = get_current_gym_id()
+    if not gym_id:
+        return jsonify({'error': 'Gym ID not found in token'}), 400
+    
+    today = date.today()
+    
+    # Get members currently inside gym (checked in today, not checked out)
+    currently_inside = Attendance.query.filter_by(
+        gym_id=gym_id,
+        attendance_date=today,
+        status='Checked In'
+    ).join(Member).order_by(Attendance.check_in_time.desc()).all()
+    
+    # Get members who left today (checked out today)
+    members_left_today = Attendance.query.filter_by(
+        gym_id=gym_id,
+        attendance_date=today,
+        status='Checked Out'
+    ).join(Member).order_by(Attendance.check_out_time.desc()).all()
+    
+    # Format currently inside data
+    currently_inside_data = []
+    for attendance in currently_inside:
+        member = attendance.member
+        currently_inside_data.append({
+            'attendance_id': attendance.id,
+            'member_id': member.id,
+            'member_name': f"{member.first_name} {member.last_name}".strip(),
+            'check_in_time': attendance.check_in_time.isoformat() if attendance.check_in_time else None,
+            'expected_finish_time': attendance.expected_finish_time.isoformat() if attendance.expected_finish_time else None,
+            'phone': member.phone,
+            'membership_plan': member.membership_plan_name
+        })
+    
+    # Format members left data
+    members_left_data = []
+    for attendance in members_left_today:
+        member = attendance.member
+        duration_minutes = None
+        if attendance.check_in_time and attendance.check_out_time:
+            duration_minutes = int((attendance.check_out_time - attendance.check_in_time).total_seconds() / 60)
+        
+        members_left_data.append({
+            'attendance_id': attendance.id,
+            'member_id': member.id,
+            'member_name': f"{member.first_name} {member.last_name}".strip(),
+            'check_in_time': attendance.check_in_time.isoformat() if attendance.check_in_time else None,
+            'check_out_time': attendance.check_out_time.isoformat() if attendance.check_out_time else None,
+            'duration_minutes': duration_minutes,
+            'phone': member.phone,
+            'membership_plan': member.membership_plan_name
+        })
+    
+    return jsonify({
+        'currently_inside': currently_inside_data,
+        'members_left_today': members_left_data,
+        'currently_inside_count': len(currently_inside_data),
+        'members_left_count': len(members_left_data)
+    }), 200
+
+@attendance_bp.route('/<int:attendance_id>/mark-exit', methods=['PUT'])
+@jwt_required()
+def mark_exit(attendance_id):
+    """Mark a member as exited (manual exit by gym owner)"""
+    gym_id = get_current_gym_id()
+    if not gym_id:
+        return jsonify({'error': 'Gym ID not found in token'}), 400
+    
+    attendance = Attendance.query.filter_by(id=attendance_id, gym_id=gym_id).first()
+    if not attendance:
+        return jsonify({'error': 'Attendance record not found'}), 404
+    
+    if attendance.status == 'Checked Out':
+        return jsonify({'error': 'Member is already checked out'}), 400
+    
+    try:
+        check_out_time = datetime.utcnow()
+        
+        # Validate check-out time is after check-in time
+        if check_out_time <= attendance.check_in_time:
+            return jsonify({'error': 'Check-out time must be after check-in time'}), 400
+        
+        attendance.check_out_time = check_out_time
+        attendance.status = 'Checked Out'
+        attendance.updated_at = datetime.utcnow()
+        
+        db.session.commit()
+        
+        # Calculate duration
+        duration_minutes = int((check_out_time - attendance.check_in_time).total_seconds() / 60)
+        
+        # Log the check-out operation
+        member_name = f"{attendance.member.first_name} {attendance.member.last_name}".strip() if attendance.member else "Unknown Member"
+        ActivityLogger.log_update(
+            'attendance',
+            attendance_id,
+            changes={'status': {'old': 'Checked In', 'new': 'Checked Out'}},
+            entity_name=f"Manual Exit: {member_name}",
+            gym_id=gym_id
+        )
+        
+        return jsonify({
+            'message': 'Member marked as exited successfully',
+            'attendance': attendance.to_dict(),
+            'duration_minutes': duration_minutes
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': f'Failed to mark exit: {str(e)}'}), 500
+
 @attendance_bp.route('', methods=['GET'])
 @jwt_required()
 def list_attendance():

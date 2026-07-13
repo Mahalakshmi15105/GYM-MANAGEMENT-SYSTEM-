@@ -23,6 +23,7 @@ import {
   CheckCircleIcon,
   ArrowPathIcon,
   BanknotesIcon,
+  XMarkIcon,
 } from "@heroicons/react/24/outline";
 
 export default function DashboardPage() {
@@ -33,11 +34,37 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [gymStatus, setGymStatus] = useState(null);
+  const [livePresence, setLivePresence] = useState(null);
+  const [livePresenceLoading, setLivePresenceLoading] = useState(false);
 
   useEffect(() => {
     fetchAnalytics();
     fetchGymStatus();
+    fetchLivePresence();
   }, []);
+
+  const fetchLivePresence = async () => {
+    try {
+      setLivePresenceLoading(true);
+      const response = await api.get('/api/attendance/live-presence');
+      setLivePresence(response.data);
+    } catch (err) {
+      console.error('Failed to fetch live presence:', err);
+    } finally {
+      setLivePresenceLoading(false);
+    }
+  };
+
+  const handleMarkExit = async (attendanceId) => {
+    try {
+      await api.put(`/api/attendance/${attendanceId}/mark-exit`);
+      fetchLivePresence();
+      fetchAnalytics(); // Refresh analytics to update counts
+    } catch (err) {
+      console.error('Failed to mark exit:', err);
+      alert(err.response?.data?.error || 'Failed to mark exit');
+    }
+  };
 
   const fetchGymStatus = async () => {
     try {
@@ -92,6 +119,21 @@ export default function DashboardPage() {
       hour: "2-digit",
       minute: "2-digit",
     });
+  };
+
+  const formatTime = (dateTimeString) => {
+    if (!dateTimeString) return "-";
+    return new Date(dateTimeString).toLocaleTimeString("en-US", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
+  const formatDuration = (minutes) => {
+    if (!minutes) return "-";
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
   };
 
   const formatDate = (dateString) => {
@@ -256,6 +298,113 @@ export default function DashboardPage() {
             </span>{" "}
  {t('dashboard.total')}
           </div>
+        </div>
+      </div>
+
+      {/* Live Presence Tracking */}
+      <div className="grid lg:grid-cols-2 gap-8">
+        {/* Currently Inside Gym - Green Theme */}
+        <div className="bg-white border border-green-200 p-6 rounded-2xl shadow-sm">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-bold text-green-700 flex items-center gap-2">
+              <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+              Currently Inside Gym
+            </h2>
+            <div className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-semibold">
+              {livePresence?.currently_inside_count || 0}
+            </div>
+          </div>
+          
+          {livePresenceLoading ? (
+            <div className="text-center py-8 text-gray-500">Loading...</div>
+          ) : livePresence?.currently_inside?.length > 0 ? (
+            <div className="space-y-3 max-h-96 overflow-y-auto">
+              {livePresence.currently_inside.map((member) => (
+                <div key={member.attendance_id} className="bg-green-50 border border-green-200 p-4 rounded-xl">
+                  <div className="flex items-center justify-between mb-2">
+                    <div>
+                      <p className="font-semibold text-gray-900">{member.member_name}</p>
+                      <p className="text-xs text-gray-500">{member.membership_plan || 'No Plan'}</p>
+                    </div>
+                    <button
+                      onClick={() => handleMarkExit(member.attendance_id)}
+                      className="bg-red-500 hover:bg-red-600 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-1"
+                    >
+                      <XMarkIcon className="w-4 h-4" /> Mark Exit
+                    </button>
+                  </div>
+                  <div className="flex items-center gap-4 text-xs text-gray-600">
+                    <div className="flex items-center gap-1">
+                      <ClockIcon className="w-4 h-4" />
+                      <span>Entry: {formatTime(member.check_in_time)}</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <UserIcon className="w-4 h-4" />
+                      <span>{member.phone}</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-2">
+                <CheckCircleIcon className="w-6 h-6 text-green-500" />
+              </div>
+              <p className="text-sm text-gray-600">No members currently inside</p>
+            </div>
+          )}
+        </div>
+
+        {/* Members Left Gym - Red Theme */}
+        <div className="bg-white border border-red-200 p-6 rounded-2xl shadow-sm">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-bold text-red-700 flex items-center gap-2">
+              <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+              Members Left Gym Today
+            </h2>
+            <div className="bg-red-100 text-red-700 px-3 py-1 rounded-full text-sm font-semibold">
+              {livePresence?.members_left_count || 0}
+            </div>
+          </div>
+          
+          {livePresenceLoading ? (
+            <div className="text-center py-8 text-gray-500">Loading...</div>
+          ) : livePresence?.members_left_today?.length > 0 ? (
+            <div className="space-y-3 max-h-96 overflow-y-auto">
+              {livePresence.members_left_today.map((member) => (
+                <div key={member.attendance_id} className="bg-red-50 border border-red-200 p-4 rounded-xl">
+                  <div className="flex items-center justify-between mb-2">
+                    <div>
+                      <p className="font-semibold text-gray-900">{member.member_name}</p>
+                      <p className="text-xs text-gray-500">{member.membership_plan || 'No Plan'}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-semibold text-red-600">{formatDuration(member.duration_minutes)}</p>
+                      <p className="text-xs text-gray-500">Duration</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4 text-xs text-gray-600">
+                    <div className="flex items-center gap-1">
+                      <ClockIcon className="w-4 h-4" />
+                      <span>Entry: {formatTime(member.check_in_time)}</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <XMarkIcon className="w-4 h-4" />
+                      <span>Exit: {formatTime(member.check_out_time)}</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-2">
+                <UserIcon className="w-6 h-6 text-red-500" />
+              </div>
+              <p className="text-sm text-gray-600">No members have left today</p>
+            </div>
+          )}
         </div>
       </div>
 
