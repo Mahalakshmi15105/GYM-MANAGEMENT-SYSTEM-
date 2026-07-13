@@ -1,11 +1,9 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useTranslation } from "../utils/i18n";
 import api from "../services/api";
 import { useCurrency } from "../utils/currency";
 import {
-  PlusIcon,
   BanknotesIcon,
   DevicePhoneMobileIcon,
   CreditCardIcon,
@@ -17,77 +15,128 @@ export default function PaymentsPage() {
   const { user } = useAuth();
   const { t } = useTranslation(user?.gym_id);
   const { formatCurrency, setCurrencyCode } = useCurrency(user?.gym_id);
-  const [payments, setPayments] = useState([]);
+  const [members, setMembers] = useState([]);
+  const [membershipPlans, setMembershipPlans] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState("All");
-  const [methodFilter, setMethodFilter] = useState("All");
-  const [dateRange, setDateRange] = useState({ start: "", end: "" });
-  const [deleteModal, setDeleteModal] = useState({
+  const [paymentModal, setPaymentModal] = useState({
     isOpen: false,
-    payment: null,
+    member: null,
+  });
+  const [paymentForm, setPaymentForm] = useState({
+    membership_plan_id: "",
+    payment_amount: "",
+    payment_date: new Date().toISOString().split('T')[0],
+    payment_method: "Cash",
   });
 
   useEffect(() => {
-    fetchPayments();
+    fetchMembers();
+    fetchMembershipPlans();
   }, []);
 
-  const fetchPayments = async () => {
+  const fetchMembers = async () => {
     try {
-      const params = new URLSearchParams();
-      if (statusFilter !== "All") params.append("status", statusFilter);
-      if (methodFilter !== "All") params.append("method", methodFilter);
-      if (dateRange.start) params.append("start_date", dateRange.start);
-      if (dateRange.end) params.append("end_date", dateRange.end);
-      if (searchQuery.trim()) params.append("q", searchQuery.trim());
-
-      const response = await api.get(`/api/payments?${params.toString()}`);
-      setPayments(response.data.payments || []);
+      const response = await api.get('/api/payments/members-with-payments');
+      setMembers(response.data.members || []);
       if (response.data?.currency) {
         setCurrencyCode(response.data.currency);
       }
     } catch (err) {
       console.error(err);
-      setError(err.response?.data?.error || "Failed to fetch payments");
+      setError(err.response?.data?.error || 'Failed to fetch members');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchMembershipPlans = async () => {
+    try {
+      const response = await api.get('/api/membership-plans');
+      setMembershipPlans(response.data.membership_plans || []);
+    } catch (err) {
+      console.error(err);
+      console.error('Failed to fetch membership plans');
     }
   };
 
   const handleSearch = async (query) => {
     setSearchQuery(query);
     if (!query.trim()) {
-      fetchPayments();
+      fetchMembers();
       return;
     }
 
     try {
-      const response = await api.get(
-        `/api/payments/search?q=${encodeURIComponent(query)}`,
-      );
-      setPayments(response.data.payments || []);
-      if (response.data?.currency) {
-        setCurrencyCode(response.data.currency);
-      }
+      const response = await api.get(`/api/members/search?q=${encodeURIComponent(query)}`);
+      setMembers(response.data.members || []);
     } catch (err) {
       console.error(err);
-      setError("Search failed");
+      setError('Search failed');
     }
   };
 
-  const handleFilterChange = () => {
-    fetchPayments();
+  const isDueTomorrow = (endDate) => {
+    if (!endDate) return false;
+    const dueDate = new Date(endDate);
+    const today = new Date();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    return dueDate.toDateString() === tomorrow.toDateString();
   };
 
-  const handleDelete = async (paymentId) => {
+  const openPaymentModal = (member) => {
+    setPaymentModal({ isOpen: true, member });
+    // Find the current plan by name to get its ID
+    const currentPlan = membershipPlans.find(p => p.plan_name === member.membership_plan_name);
+    setPaymentForm({
+      membership_plan_id: currentPlan ? currentPlan.id.toString() : '',
+      payment_amount: currentPlan ? currentPlan.price : '',
+      payment_date: new Date().toISOString().split('T')[0],
+      payment_method: 'Cash',
+    });
+  };
+
+  const closePaymentModal = () => {
+    setPaymentModal({ isOpen: false, member: null });
+    setPaymentForm({
+      membership_plan_id: '',
+      payment_amount: '',
+      payment_date: new Date().toISOString().split('T')[0],
+      payment_method: 'Cash',
+    });
+  };
+
+  const handlePlanChange = (planId) => {
+    const plan = membershipPlans.find(p => p.id === parseInt(planId));
+    if (plan) {
+      setPaymentForm({
+        ...paymentForm,
+        membership_plan_id: planId,
+        payment_amount: plan.price,
+      });
+    }
+  };
+
+  const handlePaymentSubmit = async () => {
+    if (!paymentModal.member) return;
+
     try {
-      await api.delete(`/api/payments/${paymentId}`);
-      setPayments(payments.filter((p) => p.id !== paymentId));
-      setDeleteModal({ isOpen: false, payment: null });
+      const response = await api.post('/api/payments', {
+        member_id: paymentModal.member.id,
+        membership_plan_id: paymentForm.membership_plan_id || null,
+        payment_amount: paymentForm.payment_amount,
+        payment_date: paymentForm.payment_date,
+        payment_method: paymentForm.payment_method,
+        payment_status: 'Paid',
+      });
+      
+      closePaymentModal();
+      fetchMembers();
     } catch (err) {
       console.error(err);
-      setError(err.response?.data?.error || "Failed to delete payment");
+      setError(err.response?.data?.error || 'Failed to process payment');
     }
   };
 
@@ -137,67 +186,18 @@ export default function PaymentsPage() {
             Manage member payments - Gym ID: {user?.gym_id}
           </p>
         </div>
-        <Link
-          to="/payments/add"
-          className="bg-orange-600 hover:bg-orange-700 text-white font-bold px-6 py-3 rounded-xl transition-all duration-200 self-start md:self-auto text-center shadow-sm flex items-center gap-2"
-        >
-          <PlusIcon className="w-4 h-4" /> {t('payments.addPayment')}
-        </Link>
       </div>
 
-      {/* Filters */}
+      {/* Search */}
       <div className="bg-white border border-gray-200 p-6 rounded-2xl shadow-sm">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-          <div className="lg:col-span-2">
+        <div className="grid grid-cols-1 gap-4">
+          <div>
             <input
               type="text"
               placeholder={t('payments.searchPayments')}
               value={searchQuery}
               onChange={(e) => handleSearch(e.target.value)}
               className="w-full bg-gray-50 border border-gray-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 rounded-xl px-4 py-3 text-sm text-gray-900 placeholder-gray-500 focus:outline-none transition-all duration-200"
-            />
-          </div>
-          <div>
-            <select
-              value={statusFilter}
-              onChange={(e) => {
-                setStatusFilter(e.target.value);
-                handleFilterChange();
-              }}
-              className="w-full bg-gray-50 border border-gray-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 rounded-xl px-4 py-3 text-sm text-gray-900 focus:outline-none transition-all duration-200"
-            >
-              <option value="All">{t('common.status')}</option>
-              <option value="Paid">{t('payments.paid')}</option>
-              <option value="Pending">{t('payments.unpaid')}</option>
-              <option value="Failed">{t('payments.overdue')}</option>
-            </select>
-          </div>
-          <div>
-            <select
-              value={methodFilter}
-              onChange={(e) => {
-                setMethodFilter(e.target.value);
-                handleFilterChange();
-              }}
-              className="w-full bg-gray-50 border border-gray-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 rounded-xl px-4 py-3 text-sm text-gray-900 focus:outline-none transition-all duration-200"
-            >
-              <option value="All">{t('common.filter')}</option>
-              <option value="Cash">{t('payments.cash')}</option>
-              <option value="UPI">{t('payments.online')}</option>
-              <option value="Card">{t('payments.card')}</option>
-              <option value="Bank Transfer">{t('payments.bank')}</option>
-            </select>
-          </div>
-          <div>
-            <input
-              type="date"
-              value={dateRange.start}
-              onChange={(e) => {
-                setDateRange((prev) => ({ ...prev, start: e.target.value }));
-                handleFilterChange();
-              }}
-              className="w-full bg-gray-50 border border-gray-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 rounded-xl px-4 py-3 text-sm text-gray-900 focus:outline-none transition-all duration-200"
-              placeholder={t('reports.fromDate')}
             />
           </div>
         </div>
@@ -214,9 +214,9 @@ export default function PaymentsPage() {
           <div className="p-8 text-center text-gray-500">
             {t('common.loading')}
           </div>
-        ) : payments.length === 0 ? (
+        ) : members.length === 0 ? (
           <div className="p-8 text-center text-gray-500">
-            {searchQuery ? t('payments.noPaymentsFound') : t('empty.noPaymentsDesc')}
+            {searchQuery ? t('members.noMembersFound') : t('empty.noMembersDesc')}
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -250,71 +250,53 @@ export default function PaymentsPage() {
                 </tr>
               </thead>
               <tbody>
-                {payments.map((payment) => (
+                {members.map((member) => (
                   <tr
-                    key={payment.id}
+                    key={member.id}
                     className="border-b border-gray-100 hover:bg-gray-50"
                   >
                     <td className="px-6 py-4">
                       <div>
-                        <p className="text-sm text-gray-900 font-medium">
-                          {payment.member_name}
+                        <p className={`text-sm font-medium ${isDueTomorrow(member.membership_end_date) ? 'text-red-600' : 'text-gray-900'}`}>
+                          {member.first_name} {member.last_name}
                         </p>
                         <p className="text-xs text-gray-500 font-mono">
-                          {payment.member_phone}
+                          {member.phone}
                         </p>
                       </div>
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-700">
-                      {payment.membership_plan_name || "-"}
+                      {member.membership_plan_name || "-"}
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-900 font-semibold">
-                      {formatCurrency(payment.payment_amount)}
+                      {member.last_payment ? formatCurrency(member.last_payment.payment_amount) : '-'}
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-700">
-                      {formatDate(payment.payment_date)}
+                      {member.last_payment ? formatDate(member.last_payment.payment_date) : '-'}
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2 text-orange-600">
-                        {getMethodIcon(payment.payment_method)}
+                        {member.last_payment ? getMethodIcon(member.last_payment.payment_method) : null}
                         <span className="text-sm text-gray-700">
-                          {payment.payment_method}
+                          {member.last_payment ? member.last_payment.payment_method : '-'}
                         </span>
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <span
-                        className={`inline-flex px-2 py-1 rounded-full text-xs font-semibold border ${getStatusColor(payment.payment_status)}`}
-                      >
-                        {payment.payment_status}
+                      <span className={`inline-flex px-2 py-1 rounded-full text-xs font-semibold border ${member.last_payment ? getStatusColor(member.last_payment.payment_status) : 'bg-gray-50 text-gray-600 border-gray-200'}`}>
+                        {member.last_payment ? member.last_payment.payment_status : '-'}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-700 font-mono">
-                      {payment.transaction_id || "-"}
+                      {member.last_payment ? (member.last_payment.transaction_id || '-') : '-'}
                     </td>
                     <td className="px-6 py-4">
-                      <div className="flex items-center gap-2">
-                        <Link
-                          to={`/payments/${payment.id}`}
-                          className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
-                        >
-                          View
-                        </Link>
-                        <Link
-                          to={`/payments/${payment.id}/edit`}
-                          className="bg-orange-600 hover:bg-orange-700 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
-                        >
-                          Edit
-                        </Link>
-                        <button
-                          onClick={() =>
-                            setDeleteModal({ isOpen: true, payment })
-                          }
-                          className="bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
-                        >
-                          Delete
-                        </button>
-                      </div>
+                      <button
+                        onClick={() => openPaymentModal(member)}
+                        className="bg-orange-600 hover:bg-orange-700 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
+                      >
+                        Pay
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -324,28 +306,90 @@ export default function PaymentsPage() {
         )}
       </div>
 
-      {deleteModal.isOpen && (
+      {paymentModal.isOpen && paymentModal.member && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white border border-gray-200 rounded-2xl p-6 max-w-md w-full shadow-lg">
-            <h3 className="text-lg font-bold text-gray-900 mb-2">
-              Delete Payment
+            <h3 className="text-lg font-bold text-gray-900 mb-4">
+              Record Payment
             </h3>
-            <p className="text-sm text-gray-600 mb-6">
-              Are you sure you want to delete payment{" "}
-              <strong className="text-gray-900">
-                {deleteModal.payment?.transaction_id}
-              </strong>
-              ? This action cannot be undone.
-            </p>
-            <div className="flex gap-3">
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Member Name
+                </label>
+                <input
+                  type="text"
+                  value={`${paymentModal.member.first_name} ${paymentModal.member.last_name}`}
+                  readOnly
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Membership Plan
+                </label>
+                <select
+                  value={paymentForm.membership_plan_id}
+                  onChange={(e) => handlePlanChange(e.target.value)}
+                  className="w-full bg-gray-50 border border-gray-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 rounded-xl px-4 py-3 text-sm text-gray-900 focus:outline-none transition-all duration-200"
+                >
+                  <option value="">Select a plan</option>
+                  {membershipPlans.map((plan) => (
+                    <option key={plan.id} value={plan.id}>
+                      {plan.plan_name} - {formatCurrency(plan.price)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Payment Amount
+                </label>
+                <input
+                  type="text"
+                  value={paymentForm.payment_amount ? formatCurrency(paymentForm.payment_amount) : ''}
+                  readOnly
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Payment Date
+                </label>
+                <input
+                  type="date"
+                  value={paymentForm.payment_date}
+                  onChange={(e) => setPaymentForm({ ...paymentForm, payment_date: e.target.value })}
+                  className="w-full bg-gray-50 border border-gray-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 rounded-xl px-4 py-3 text-sm text-gray-900 focus:outline-none transition-all duration-200"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Payment Method
+                </label>
+                <select
+                  value={paymentForm.payment_method}
+                  onChange={(e) => setPaymentForm({ ...paymentForm, payment_method: e.target.value })}
+                  className="w-full bg-gray-50 border border-gray-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 rounded-xl px-4 py-3 text-sm text-gray-900 focus:outline-none transition-all duration-200"
+                >
+                  <option value="Cash">Cash</option>
+                  <option value="UPI">UPI</option>
+                  <option value="Card">Card</option>
+                  <option value="Bank Transfer">Bank Transfer</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+            </div>
+            <div className="flex gap-3 mt-6">
               <button
-                onClick={() => handleDelete(deleteModal.payment.id)}
-                className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-xl text-sm font-medium transition-colors"
+                onClick={handlePaymentSubmit}
+                disabled={!paymentForm.membership_plan_id || !paymentForm.payment_amount}
+                className="bg-orange-600 hover:bg-orange-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-4 py-2 rounded-xl text-sm font-medium transition-colors"
               >
-                Delete
+                Submit Payment
               </button>
               <button
-                onClick={() => setDeleteModal({ isOpen: false, payment: null })}
+                onClick={closePaymentModal}
                 className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-xl text-sm font-medium transition-colors"
               >
                 Cancel

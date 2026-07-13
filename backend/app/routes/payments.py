@@ -7,6 +7,7 @@ from app.activity_logging import ActivityLogger
 from app.currency_utils import get_gym_currency
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
+from sqlalchemy.orm import aliased
 import uuid
 
 payments_bp = Blueprint('payments', __name__)
@@ -81,6 +82,59 @@ def list_payments():
         'payments': [payment.to_dict() for payment in payments]
     }), 200
 
+@payments_bp.route('/members-with-payments', methods=['GET'])
+@jwt_required()
+def list_members_with_payments():
+    """List all members with their last payment information for the current gym"""
+    gym_id = get_current_gym_id()
+    if not gym_id:
+        return jsonify({'error': 'Gym ID not found in token'}), 400
+    
+    # Get all members for the gym
+    members = Member.query.filter_by(gym_id=gym_id).all()
+    
+    members_with_payments = []
+    for member in members:
+        # Get the most recent payment for this member
+        last_payment = Payment.query.filter_by(
+            member_id=member.id, 
+            gym_id=gym_id
+        ).order_by(desc(Payment.payment_date), desc(Payment.created_at)).first()
+        
+        member_data = {
+            'id': member.id,
+            'member_id': member.member_id,
+            'first_name': member.first_name,
+            'last_name': member.last_name,
+            'phone': member.phone,
+            'email': member.email,
+            'membership_plan_name': member.membership_plan_name,
+            'membership_start_date': member.membership_start_date.isoformat() if member.membership_start_date else None,
+            'membership_end_date': member.membership_end_date.isoformat() if member.membership_end_date else None,
+            'status': member.status,
+            'last_payment': None
+        }
+        
+        if last_payment:
+            member_data['last_payment'] = {
+                'id': last_payment.id,
+                'payment_amount': float(last_payment.payment_amount),
+                'payment_date': last_payment.payment_date.isoformat() if last_payment.payment_date else None,
+                'payment_method': last_payment.payment_method,
+                'payment_status': last_payment.payment_status,
+                'transaction_id': last_payment.transaction_id
+            }
+        
+        members_with_payments.append(member_data)
+    
+    # Log the view operation
+    ActivityLogger.log_view('payment', view_type='members_with_payments', gym_id=gym_id)
+    
+    return jsonify({
+        'currency': get_gym_currency(gym_id),
+        'members': members_with_payments
+    }), 200
+
 @payments_bp.route('', methods=['POST'])
 @jwt_required()
 def create_payment():
@@ -127,7 +181,7 @@ def create_payment():
         return jsonify({'error': 'Payment date must be in YYYY-MM-DD format'}), 400
     
     # Validate payment method
-    valid_methods = ['Cash', 'UPI', 'Card', 'Bank Transfer']
+    valid_methods = ['Cash', 'UPI', 'Card', 'Bank Transfer', 'Other']
     if data['payment_method'] not in valid_methods:
         return jsonify({'error': f'Payment method must be one of: {", ".join(valid_methods)}'}), 400
     
@@ -159,6 +213,42 @@ def create_payment():
         db.session.add(new_payment)
         db.session.commit()
         
+        # Update member's membership end date based on plan duration if payment is successful
+        if payment_status == 'Paid' and membership_plan:
+            from dateutil.relativedelta import relativedelta
+            
+            # Calculate new end date based on plan duration
+            current_end_date = member.membership_end_date or datetime.utcnow().date()
+            
+            # Map duration to time period
+            duration = membership_plan.duration
+            if duration == 7:
+                # Weekly
+                new_end_date = current_end_date + relativedelta(weeks=1)
+            elif duration == 30:
+                # Monthly
+                new_end_date = current_end_date + relativedelta(months=1)
+            elif duration == 90:
+                # Quarterly
+                new_end_date = current_end_date + relativedelta(months=3)
+            elif duration == 180:
+                # Half-Yearly
+                new_end_date = current_end_date + relativedelta(months=6)
+            elif duration == 365:
+                # Yearly
+                new_end_date = current_end_date + relativedelta(years=1)
+            else:
+                # Default: treat as days
+                new_end_date = current_end_date + relativedelta(days=duration)
+            
+            # Update member's membership information
+            member.membership_plan_name = membership_plan.plan_name
+            member.membership_start_date = payment_date
+            member.membership_end_date = new_end_date
+            member.status = 'Active'
+            
+            db.session.commit()
+
         # Log the create operation
         member_name = f"{member.first_name} {member.last_name}".strip()
         ActivityLogger.log_create(

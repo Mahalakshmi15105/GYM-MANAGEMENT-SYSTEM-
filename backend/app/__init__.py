@@ -69,13 +69,8 @@ def create_app(config_class=Config):
     from app.routes.broadcasts import broadcasts_bp
     app.register_blueprint(broadcasts_bp, url_prefix='/api/broadcasts')
     
-    # Create DB tables automatically on boot if DB is connected
-    with app.app_context():
-        try:
-            db.create_all()
-            print("Database tables verified/created successfully.")
-        except Exception as e:
-            print(f"Database connection error or table creation skipped: {str(e)}")
-            print("Please ensure your MySQL server is running and configured correctly in .env.")
+    # Initialize database automatically on startup
+    from app.db_init import initialize_database
+    initialize_database(app)
             
     return app
