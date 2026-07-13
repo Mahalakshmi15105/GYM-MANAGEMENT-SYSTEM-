@@ -222,9 +222,6 @@ export default function MembersPage() {
                                         Joining Date
                                     </th>
                                     <th className="text-left px-6 py-4 text-xs font-semibold uppercase tracking-wider text-gray-600">
-                                        Status
-                                    </th>
-                                    <th className="text-left px-6 py-4 text-xs font-semibold uppercase tracking-wider text-gray-600">
                                         {t('common.actions')}
                                     </th>
                                 </tr>
@@ -267,11 +264,6 @@ export default function MembersPage() {
                                         </td>
                                         <td className="px-6 py-4 text-sm text-gray-700">
                                             {formatDate(member.created_at)}
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <span className={`inline-flex px-2 py-1 rounded-full text-xs font-semibold border ${getStatusColor(member.status)}`}>
-                                                {member.status}
-                                            </span>
                                         </td>
                                         <td className="px-6 py-4">
                                             <div className="flex items-center gap-2">
