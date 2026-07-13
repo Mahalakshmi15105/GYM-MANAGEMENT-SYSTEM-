@@ -10,6 +10,8 @@ import {
   LanguageIcon,
   CheckCircleIcon,
   ExclamationCircleIcon,
+  BellIcon,
+  BellSlashIcon,
 } from '@heroicons/react/24/outline';
 
 export default function GymOwnerSettingsPage() {
@@ -101,6 +103,33 @@ export default function GymOwnerSettingsPage() {
     }
   };
 
+  const handleGymStatusToggle = async () => {
+    if (updating) return;
+    
+    try {
+      setUpdating(true);
+      setError('');
+      setSuccess('');
+
+      const newValue = !gymData.show_gym_status;
+      const response = await api.put('/api/gym/profile', {
+        show_gym_status: newValue
+      });
+      
+      setGymData(response.data.gym);
+      setSuccess(`Gym Status ${newValue ? 'enabled' : 'disabled'}`);
+      
+      // Clear success message after 3 seconds
+      setTimeout(() => setSuccess(''), 3000);
+      
+    } catch (err) {
+      console.error('Failed to update gym status preference:', err);
+      setError(err.response?.data?.error || t('messages.operationFailed'));
+    } finally {
+      setUpdating(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="space-y-8">
@@ -171,6 +200,57 @@ export default function GymOwnerSettingsPage() {
                 Example: {formatCurrency(1000)}
               </p>
             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Gym Status Settings Section */}
+      <div className="bg-white border border-gray-200 p-6 rounded-2xl shadow-sm">
+        <h2 className="text-lg font-bold text-gray-900 mb-6 flex items-center gap-2">
+          {gymData?.show_gym_status ? (
+            <BellIcon className="w-5 h-5 text-orange-500" />
+          ) : (
+            <BellSlashIcon className="w-5 h-5 text-gray-400" />
+          )}
+          Gym Status Display
+        </h2>
+        
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Show Gym Status Badge
+              </label>
+              <p className="text-sm text-gray-600">
+                When enabled, displays your gym's operational status (Open/Closed) on both Gym Owner and Member dashboards.
+                The status automatically updates based on your login/logout activity.
+              </p>
+            </div>
+            <button
+              onClick={handleGymStatusToggle}
+              disabled={updating}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ${
+                gymData?.show_gym_status ? 'bg-orange-500' : 'bg-gray-300'
+              } ${updating ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+            >
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200 ${
+                  gymData?.show_gym_status ? 'translate-x-6' : 'translate-x-1'
+                }`}
+              />
+            </button>
+          </div>
+          
+          <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <p className="text-sm text-blue-900">
+              <span className="font-medium">How it works:</span>
+            </p>
+            <ul className="text-sm text-blue-700 mt-2 space-y-1 list-disc list-inside">
+              <li>When you log in → Gym status becomes "OPEN" (🟢)</li>
+              <li>When you log out → Gym status becomes "CLOSED" (🔴)</li>
+              <li>Members see the same status on their dashboard</li>
+              <li>Members cannot change the status</li>
+            </ul>
           </div>
         </div>
       </div>

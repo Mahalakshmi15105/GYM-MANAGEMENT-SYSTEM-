@@ -40,6 +40,11 @@ export default function MemberDashboard() {
     fetchDashboardData();
     fetchGymStatus();
     
+    // Poll gym status every 10 seconds to stay synchronized with owner login/logout
+    const statusInterval = setInterval(() => {
+      fetchGymStatus();
+    }, 10000);
+    
     // Check for attendance success/error from navigation state
     if (location.state) {
       if (location.state.attendanceSuccess) {
@@ -57,12 +62,15 @@ export default function MemberDashboard() {
       // Clear the state after displaying
       window.history.replaceState({}, document.title);
     }
+
+    return () => clearInterval(statusInterval);
   }, [location.state]);
 
   const fetchGymStatus = async () => {
     try {
       const response = await api.get('/api/members/gym-status');
       console.log('Gym status response:', response.data);
+      // Update gym status with the latest data from backend
       setGymStatus(response.data);
       setShowGymStatus(response.data.show_gym_status);
     } catch (err) {
@@ -170,34 +178,6 @@ export default function MemberDashboard() {
         </div>
       )}
 
-      {/* Gym Status Card */}
-      {showGymStatus && gymStatus && (
-        <div className={`${
-          gymStatus.operational_status === 'Open' 
-            ? 'bg-green-50 border-green-200' 
-            : 'bg-red-50 border-red-200'
-        } border mx-4 mt-4 rounded-xl p-4`}>
-          <div className="flex items-center gap-3">
-            <div className={`w-3 h-3 rounded-full ${
-              gymStatus.operational_status === 'Open' ? 'bg-green-500' : 'bg-red-500'
-            }`}></div>
-            <div>
-              <p className="font-semibold text-gray-900">Gym Status</p>
-              <p className={`text-sm ${
-                gymStatus.operational_status === 'Open' ? 'text-green-700' : 'text-red-700'
-              }`}>
-                {gymStatus.operational_status === 'Open' ? '🟢 OPEN' : '🔴 CLOSED'}
-              </p>
-              <p className="text-xs text-gray-600">
-                {gymStatus.operational_status === 'Open' 
-                  ? 'Your gym is currently open.' 
-                  : 'Your gym is currently closed.'}
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Header */}
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -213,6 +193,19 @@ export default function MemberDashboard() {
               </div>
             </div>
             <div className="flex items-center gap-3">
+              {/* Gym Status Badge */}
+              {showGymStatus && gymStatus && (
+                <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold text-white ${
+                  gymStatus.operational_status === 'Open' 
+                    ? 'bg-green-500' 
+                    : 'bg-red-500'
+                }`}>
+                  <div className={`w-2 h-2 rounded-full ${
+                    gymStatus.operational_status === 'Open' ? 'bg-white' : 'bg-white'
+                  }`}></div>
+                  {gymStatus.operational_status === 'Open' ? '🟢 OPEN' : '🔴 CLOSED'}
+                </div>
+              )}
               <NotificationBell />
               <button
                 onClick={() => navigate('/member/settings')}

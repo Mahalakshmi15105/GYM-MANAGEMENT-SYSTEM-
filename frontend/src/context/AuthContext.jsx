@@ -18,17 +18,13 @@ export const AuthProvider = ({ children }) => {
       try {
         const parsedUser = JSON.parse(storedUser);
         
-        // Validate token expiry and role consistency
-        if (isTokenExpired(storedToken)) {
-          logout();
-          return;
-        }
-        
+        // Token expiration check disabled - tokens remain valid until logout
         // Validate token claims match stored user data
         const tokenClaims = getTokenClaims(storedToken);
         if (!validateTokenUserMatch(tokenClaims, parsedUser)) {
-          console.warn('Token claims do not match stored user data, logging out for security');
-          logout();
+          console.warn('Token claims do not match stored user data, clearing session');
+          localStorage.removeItem('flexigym_user');
+          localStorage.removeItem('flexigym_token');
           return;
         }
         
@@ -197,16 +193,6 @@ export const useAuth = () => {
 };
 
 // Helper functions
-const isTokenExpired = (token) => {
-  try {
-    const payload = JSON.parse(atob(token.split('.')[1]));
-    const currentTime = Date.now() / 1000;
-    return payload.exp < currentTime;
-  } catch (e) {
-    return true; // If we can't parse the token, consider it expired
-  }
-};
-
 const getTokenClaims = (token) => {
   try {
     return JSON.parse(atob(token.split('.')[1]));

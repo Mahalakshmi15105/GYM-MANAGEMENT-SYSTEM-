@@ -103,9 +103,9 @@ export default function MembersPage() {
 
     const formatDate = (dateString) => {
         if (!dateString) return '-';
-        return new Date(dateString).toLocaleDateString('en-US', {
-            month: 'short',
-            day: 'numeric',
+        return new Date(dateString).toLocaleDateString('en-GB', {
+            day: '2-digit',
+            month: '2-digit',
             year: 'numeric'
         });
     };
@@ -219,10 +219,7 @@ export default function MembersPage() {
                                         Plan
                                     </th>
                                     <th className="text-left px-6 py-4 text-xs font-semibold uppercase tracking-wider text-gray-600">
-                                        Start Date
-                                    </th>
-                                    <th className="text-left px-6 py-4 text-xs font-semibold uppercase tracking-wider text-gray-600">
-                                        End Date
+                                        Joining Date
                                     </th>
                                     <th className="text-left px-6 py-4 text-xs font-semibold uppercase tracking-wider text-gray-600">
                                         Status
@@ -269,10 +266,7 @@ export default function MembersPage() {
                                             {member.membership_plan_name || '-'}
                                         </td>
                                         <td className="px-6 py-4 text-sm text-gray-700">
-                                            {formatDate(member.membership_start_date)}
-                                        </td>
-                                        <td className="px-6 py-4 text-sm text-gray-700">
-                                            {formatDate(member.membership_end_date)}
+                                            {formatDate(member.created_at)}
                                         </td>
                                         <td className="px-6 py-4">
                                             <span className={`inline-flex px-2 py-1 rounded-full text-xs font-semibold border ${getStatusColor(member.status)}`}>

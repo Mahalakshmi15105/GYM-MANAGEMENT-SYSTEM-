@@ -90,6 +90,11 @@ def update_gym_profile():
         else:
             return jsonify({'error': f'Language {new_language} is not supported'}), 400
     
+    if 'show_gym_status' in data and data['show_gym_status'] != gym.show_gym_status:
+        old_status = gym.show_gym_status
+        gym.show_gym_status = bool(data['show_gym_status'])
+        changes.append(f"show_gym_status: {old_status} → {gym.show_gym_status}")
+    
     if changes:
         db.session.commit()
         
@@ -111,4 +116,59 @@ def update_gym_profile():
     return jsonify({
         'message': 'No changes detected',
         'gym': gym.to_dict()
+    }), 200
+
+
+@gym_settings_bp.route('/status', methods=['GET'])
+@jwt_required()
+def get_gym_status():
+    """Get gym operational status and display preference"""
+    gym_id = get_current_gym_id()
+    if not gym_id:
+        return jsonify({'error': 'Gym ID not found in token'}), 400
+    
+    gym = Gym.query.get(gym_id)
+    if not gym:
+        return jsonify({'error': 'Gym not found'}), 404
+    
+    return jsonify({
+        'operational_status': gym.operational_status,
+        'show_gym_status': gym.show_gym_status
+    }), 200
+
+
+@gym_settings_bp.route('/status', methods=['PUT'])
+@jwt_required()
+def update_gym_status():
+    """Update gym operational status (Open/Closed)"""
+    gym_id = get_current_gym_id()
+    if not gym_id:
+        return jsonify({'error': 'Gym ID not found in token'}), 400
+    
+    gym = Gym.query.get(gym_id)
+    if not gym:
+        return jsonify({'error': 'Gym not found'}), 404
+    
+    data = request.get_json() or {}
+    operational_status = data.get('operational_status')
+    
+    if operational_status not in ['Open', 'Closed']:
+        return jsonify({'error': 'operational_status must be either "Open" or "Closed"'}), 400
+    
+    old_status = gym.operational_status
+    gym.operational_status = operational_status
+    db.session.commit()
+    
+    # Log the activity
+    ActivityLogger.log_activity(
+        'update',
+        f"Updated gym operational status: {old_status} → {operational_status}",
+        entity_type='gym',
+        entity_id=gym_id,
+        gym_id=gym_id
+    )
+    
+    return jsonify({
+        'message': 'Gym status updated successfully',
+        'operational_status': gym.operational_status
     }), 200

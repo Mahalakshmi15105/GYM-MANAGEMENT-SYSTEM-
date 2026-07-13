@@ -863,12 +863,12 @@ def get_gym_status():
             print(f"DEBUG: Gym not found with ID: {member.gym_id}")
             return jsonify({'error': 'Gym not found'}), 404
         
-        print(f"DEBUG: Gym operational_status: {gym.operational_status}, Member show_gym_status: {member.show_gym_status}")
+        print(f"DEBUG: Gym operational_status: {gym.operational_status}, Gym show_gym_status: {gym.show_gym_status}")
         
         return jsonify({
             'gym_name': gym.name,
             'operational_status': gym.operational_status,
-            'show_gym_status': member.show_gym_status
+            'show_gym_status': gym.show_gym_status
         }), 200
         
     except Exception as e:
@@ -878,47 +878,5 @@ def get_gym_status():
         return jsonify({'error': 'Failed to fetch gym status', 'details': str(e)}), 500
 
 
-@members_bp.route('/gym-status/preference', methods=['PUT'])
-@jwt_required()
-def update_gym_status_preference():
-    """Update member's preference to show/hide gym status"""
-    try:
-        from flask_jwt_extended import get_jwt_identity
-        
-        data = request.get_json() or {}
-        show_gym_status = data.get('show_gym_status')
-        
-        print(f"DEBUG: Received request to update preference. Data: {data}")
-        print(f"DEBUG: show_gym_status value: {show_gym_status}, type: {type(show_gym_status)}")
-        
-        if show_gym_status is None:
-            return jsonify({'error': 'show_gym_status is required'}), 400
-        
-        # Get member from JWT
-        member_id = get_jwt_identity()
-        print(f"DEBUG: Member ID from JWT: {member_id}")
-        member = Member.query.get(int(member_id))
-        
-        if not member:
-            print(f"DEBUG: Member not found with ID: {member_id}")
-            return jsonify({'error': 'Member not found'}), 404
-        
-        print(f"DEBUG: Found member: {member.id}, current show_gym_status: {member.show_gym_status}")
-        
-        # Update preference
-        member.show_gym_status = bool(show_gym_status)
-        db.session.commit()
-        
-        print(f"DEBUG: Updated member show_gym_status to: {member.show_gym_status}")
-        
-        return jsonify({
-            'message': 'Preference updated successfully',
-            'show_gym_status': member.show_gym_status
-        }), 200
-        
-    except Exception as e:
-        db.session.rollback()
-        print(f"DEBUG: Exception in update_gym_status_preference: {str(e)}")
-        import traceback
-        print(f"DEBUG: Traceback: {traceback.format_exc()}")
-        return jsonify({'error': 'Failed to update preference', 'details': str(e)}), 500
+# Note: The gym-status/preference endpoint has been removed as the setting
+# is now controlled by the gym owner in Gym Owner Settings, not by individual members.

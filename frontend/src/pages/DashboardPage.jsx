@@ -32,10 +32,40 @@ export default function DashboardPage() {
   const [analytics, setAnalytics] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [gymStatus, setGymStatus] = useState(null);
 
   useEffect(() => {
     fetchAnalytics();
+    fetchGymStatus();
   }, []);
+
+  const fetchGymStatus = async () => {
+    try {
+      const response = await api.get('/api/gym/status');
+      setGymStatus(response.data);
+    } catch (err) {
+      console.error('Failed to fetch gym status:', err);
+    }
+  };
+
+  const handleGymStatusToggle = async () => {
+    if (!gymStatus) return;
+    
+    const newStatus = gymStatus.operational_status === 'Open' ? 'Closed' : 'Open';
+    
+    try {
+      const response = await api.put('/api/gym/status', {
+        operational_status: newStatus
+      });
+      // Update gym status while preserving show_gym_status
+      setGymStatus({
+        ...gymStatus,
+        operational_status: response.data.operational_status
+      });
+    } catch (err) {
+      console.error('Failed to update gym status:', err);
+    }
+  };
 
   const fetchAnalytics = async () => {
     try {
@@ -121,6 +151,22 @@ export default function DashboardPage() {
           </div>
         </div>
         <div className="flex items-center gap-3">
+          {/* Gym Status Badge */}
+          {gymStatus?.show_gym_status && (
+            <button
+              onClick={handleGymStatusToggle}
+              className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold text-white hover:opacity-90 transition-opacity cursor-pointer ${
+                gymStatus.operational_status === 'Open' 
+                  ? 'bg-green-500' 
+                  : 'bg-red-500'
+              }`}
+            >
+              <div className={`w-2 h-2 rounded-full ${
+                gymStatus.operational_status === 'Open' ? 'bg-white' : 'bg-white'
+              }`}></div>
+              {gymStatus.operational_status === 'Open' ? '🟢 OPEN' : '🔴 CLOSED'}
+            </button>
+          )}
           <NotificationBell />
           <div className="flex items-center gap-2 text-xs bg-orange-50 text-orange-700 px-3.5 py-2 rounded-xl border border-orange-200 font-bold self-start md:self-auto">
             <ShieldCheckIcon className="w-4 h-4" /> Multi-Tenant Active

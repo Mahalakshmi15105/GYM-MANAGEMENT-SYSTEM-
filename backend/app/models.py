@@ -13,6 +13,7 @@ class Gym(db.Model):
     phone = db.Column(db.String(20), nullable=True)
     status = db.Column(db.String(20), nullable=False, default='Active')
     operational_status = db.Column(db.String(20), nullable=False, default='Closed')  # Gym operational status: Open/Closed
+    show_gym_status = db.Column(db.Boolean, nullable=False, default=True)  # Gym owner preference to show/hide gym status
     logo = db.Column(db.String(255), nullable=True)
     currency = db.Column(db.String(3), nullable=True, default='INR')
     language = db.Column(db.String(5), nullable=True, default='en')
@@ -32,6 +33,7 @@ class Gym(db.Model):
             'phone': self.phone,
             'status': self.status,
             'operational_status': self.operational_status,
+            'show_gym_status': self.show_gym_status,
             'logo': self.logo,
             'currency': self.currency or 'INR',
             'language': self.language or 'en',
@@ -126,7 +128,7 @@ class Member(db.Model):
     workout_duration_minutes = db.Column(db.Integer, nullable=True, default=120)  # Default 2 hours (120 minutes)
     photo = db.Column(db.String(255), nullable=True)
     show_gym_status = db.Column(db.Boolean, nullable=False, default=True)  # Member preference to show/hide gym status
-    created_at = db.Column(db.DateTime, nullable=True)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, nullable=True)
     
     def to_dict(self):
