@@ -12,3 +12,4 @@ class Config:
     JWT_ACCESS_TOKEN_EXPIRES = False
     SQLALCHEMY_DATABASE_URI = os.getenv('DATABASE_URL', 'mysql+pymysql://root:password@localhost:3306/gym_db')
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+    FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:3000')

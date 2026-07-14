@@ -2,7 +2,7 @@
 Gym QR Code management routes for gym owners to manage their attendance QR codes
 """
 
-from flask import Blueprint, request, jsonify, send_file
+from flask import Blueprint, request, jsonify, send_file, current_app
 from flask_jwt_extended import jwt_required, get_jwt
 from app.extensions import db
 from app.models import Gym
@@ -158,8 +158,8 @@ def get_qr_image():
         )
         
         # Encode URL instead of plain text
-        # In production, use actual domain
-        frontend_url = 'http://localhost:3000'  # TODO: Configure from environment
+        # Use configured frontend URL from environment
+        frontend_url = current_app.config.get('FRONTEND_URL', 'http://localhost:3000')
         qr_data = f"{frontend_url}/login?gym={gym.attendance_qr}"
         qr.add_data(qr_data)
         qr.make(fit=True)
@@ -208,7 +208,8 @@ def get_printable_qr():
         )
         
         # Encode URL instead of plain text
-        frontend_url = 'http://localhost:3000'  # TODO: Configure from environment
+        # Use configured frontend URL from environment
+        frontend_url = current_app.config.get('FRONTEND_URL', 'http://localhost:3000')
         qr_data = f"{frontend_url}/login?gym={gym.attendance_qr}"
         qr.add_data(qr_data)
         qr.make(fit=True)
